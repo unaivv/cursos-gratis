@@ -1,0 +1,60 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5, Tailwind CSS 4
+  Architecture: not yet decided (greenfield)
+  Testing: no runner configured yet
+  Style: ESLint (eslint-config-next), no formatter configured yet
+  Product: catalog aggregating FREE courses from external platforms (YouTube,
+    Udemy free tier, etc.), redirecting users onward to the source platform.
+    Deploy target: cursos.unaividal.com. Growth channel: SEO. Monetization:
+    affiliate/ads later, not direct sales.
+
+strict_tdd: false
+
+testing:
+  reason: No test runner detected (no vitest/jest/playwright dependency and
+    no test script beyond lint). Strict TDD defaults to false per the
+    no-runner fallback until a workspace-level test command exists.
+  projects:
+    - path: "."
+      stack: "Next.js 16 / React 19 / TypeScript 5"
+      test_command: null
+      framework: null
+      lint_command: "npm run lint"
+      type_check_command: "npx tsc --noEmit"
+      formatter_command: null
+
+rules:
+  proposal:
+    - Must use official platform APIs (YouTube Data API, Udemy affiliate/API) — no scraping.
+    - State the monetization mechanism explicitly (affiliate/ads), even if deferred to a later change.
+    - Include rollback plan for risky changes.
+  specs:
+    - Use Given/When/Then for scenarios.
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY).
+  design:
+    - Justify data model choices against the "free courses only" constraint (how "free" is verified/kept current).
+    - Document SEO-relevant decisions (URL structure, metadata, static vs dynamic rendering) with rationale.
+  tasks:
+    - Group by phase, use hierarchical numbering.
+    - Keep tasks completable in one session.
+  apply:
+    guidelines:
+      - Follow existing code patterns (App Router conventions, Tailwind utility-first styling).
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.
+
+delivery:
+  delivery_strategy: auto-chain
+  review_budget_lines: 800
+
+content:
+  udemy_reverify_days: 30
+  youtube_reverify_days: 90

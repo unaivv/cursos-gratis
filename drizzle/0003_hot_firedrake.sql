@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "youtube_playlist_id" text;

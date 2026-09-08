@@ -1,0 +1,39 @@
+change: course-catalog-mvp
+schema: gentle-ai.sdd-status/v2-compatible-manual
+created: 2026-09-08
+
+session_preflight:
+  execution_mode: auto
+  artifact_store: openspec
+  delivery_strategy: auto-chain
+  review_budget_lines: 800
+
+dag:
+  explore: done
+  research: done
+  proposal: done
+  specs: done
+  design: done
+  tasks: done
+  apply: code_complete_size_exception_accepted
+  verify: blocked
+  archive: blocked
+
+artifacts:
+  exploration: openspec/changes/course-catalog-mvp/exploration.md
+  research: openspec/changes/course-catalog-mvp/research.md
+  proposal: openspec/changes/course-catalog-mvp/proposal.md
+  specs:
+    - openspec/changes/course-catalog-mvp/specs/course-catalog/spec.md
+    - openspec/changes/course-catalog-mvp/specs/content-ingestion/spec.md
+  design: openspec/changes/course-catalog-mvp/design.md
+  tasks: openspec/changes/course-catalog-mvp/tasks.md
+
+open_decisions:
+  - Analytics provider for outbound-click tracking (Plausible vs. Vercel Analytics) — does not block apply.
+  - Exact MVP category list — content decision, does not block apply.
+
+notes:
+  - "Dedicated sdd-* sub-agents were not resolvable via Agent(subagent_type) or Skill() in this
+     Claude Code session; every phase above ran inline in the orchestrator following the same
+     skill contracts (skills/sdd-*/SKILL.md) instead of via delegation."

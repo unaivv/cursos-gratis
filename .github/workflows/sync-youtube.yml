@@ -1,0 +1,30 @@
+name: Sync YouTube courses
+
+on:
+  schedule:
+    # Weekly — YouTube channel uploads don't need daily re-sync, and this
+    # keeps well under the API's daily quota.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run YouTube sync
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/sync-youtube.ts
+        # Writes land as status: pending — review happens in the admin
+        # panel, not as a PR (spec: content-ingestion — "YouTube sync
+        # writes pending records, review moves to the admin panel").

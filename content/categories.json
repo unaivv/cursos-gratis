@@ -1,0 +1,14 @@
+[
+  { "slug": "programming", "name": "Programación" },
+  { "slug": "data-ai", "name": "Datos e IA" },
+  { "slug": "design", "name": "Diseño" },
+  { "slug": "marketing", "name": "Marketing" },
+  { "slug": "languages", "name": "Idiomas" },
+  { "slug": "business", "name": "Negocios" },
+  { "slug": "productivity", "name": "Productividad" },
+  { "slug": "wellness", "name": "Bienestar" },
+  { "slug": "music", "name": "Música" },
+  { "slug": "crafts", "name": "Manualidades y hobbies" },
+  { "slug": "engineering", "name": "Ingeniería y CAD" },
+  { "slug": "education", "name": "Educación" }
+]

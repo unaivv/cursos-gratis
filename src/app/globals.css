@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
+/* Palette from the "Atelier Archive & Index" design system (Stitch
+   redesign, Sept 2026) — warmer archival paper instead of the cooler
+   original tones, terracotta as the general accent. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f7f5f0;
+  --card: #fcfaf7;
+  --ink: #1e1e1e;
+  --ink-muted: #444748;
+  --rule: #d8d4cc;
+  --stamp-red: #c84b31;
+  --stamp-gold: #a8752e;
+  /* "verificado" stamp color for a recently-checked course — the other
+     two freshness tiers reuse --stamp-gold (aging) and --stamp-red
+     (stale, "pendiente de revisar") rather than adding more tokens. */
+  --fresh-green: #435b4c;
+  /* Platform stamp ink — each platform's own color so the badge itself
+     signals which site a course lives on before you even read the
+     label. Kept from the pre-Stitch palette: the redesign's own two
+     screens disagree with each other here (its light mockup uses two
+     similar rust-reds for both platforms, undermining "differentiated
+     stamps"; its dark mockup independently converges on this same
+     red/purple split) — this pairing is the one that actually reads as
+     differentiated at a glance. */
+  --platform-youtube: #cc0000;
+  --platform-udemy: #7c1fc4;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-stamp-red: var(--stamp-red);
+  --color-stamp-gold: var(--stamp-gold);
+  --color-platform-youtube: var(--platform-youtube);
+  --color-platform-udemy: var(--platform-udemy);
+  --font-serif: var(--font-newsreader);
+  --font-sans: var(--font-public-sans);
+  --font-mono: var(--font-courier-prime);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #0e1013;
+    --card: #16191f;
+    --ink: #f3f4f6;
+    --ink-muted: #9ca3af;
+    --rule: #262b35;
+    --stamp-red: #f87171;
+    --stamp-gold: #d99b52;
+    --fresh-green: #34d399;
+    --platform-youtube: #ef4444;
+    --platform-udemy: #c084fc;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes card-settle {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(0deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--settle-rotate, -2deg));
+  }
+}
+
+.hero-card {
+  animation: card-settle 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Filter drawer: a plain <details>/<summary>, so it works with no JS.
+   Collapsed by default (mobile default), forced open on desktop where
+   there's room for the pills without pushing content down. */
+.filter-drawer > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.filter-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+.filter-drawer > summary::marker {
+  content: "";
+}
+.filter-drawer .chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.filter-drawer[open] .chevron {
+  transform: rotate(180deg);
+}
+
+@media (min-width: 768px) {
+  .filter-drawer > summary {
+    display: none;
+  }
+  .filter-drawer:not([open]) > *:not(summary) {
+    display: block !important;
+  }
+  /* Chromium 131+ hides collapsed <details> content via a UA-generated
+     ::details-content wrapper (for the open/close height animation),
+     not by setting display:none on the light-DOM children directly —
+     the override above alone doesn't reach it. */
+  .filter-drawer::details-content {
+    content-visibility: visible !important;
+    block-size: auto !important;
+    overflow: visible !important;
+  }
 }

@@ -1,0 +1,43 @@
+change: admin-panel
+schema: gentle-ai.sdd-status/v2-compatible-manual
+created: 2026-09-08
+
+session_preflight:
+  execution_mode: auto
+  artifact_store: openspec
+  delivery_strategy: auto-chain
+  review_budget_lines: 800
+  chain_strategy: stacked-to-main
+
+relationships:
+  modifies: [course-catalog, content-ingestion]
+  depends_on: [course-catalog-mvp]
+
+dag:
+  explore: done
+  research: done
+  proposal: done
+  specs: done
+  design: done
+  tasks: done
+  apply: done_all_4_units_verified_passed
+  verify: blocked
+  archive: blocked
+
+artifacts:
+  exploration: openspec/changes/admin-panel/exploration.md
+  research: openspec/changes/admin-panel/research.md
+  proposal: openspec/changes/admin-panel/proposal.md
+  specs:
+    - openspec/changes/admin-panel/specs/course-catalog/spec.md
+    - openspec/changes/admin-panel/specs/content-ingestion/spec.md
+    - openspec/changes/admin-panel/specs/admin-auth/spec.md
+    - openspec/changes/admin-panel/specs/admin-panel/spec.md
+  design: openspec/changes/admin-panel/design.md
+  tasks: openspec/changes/admin-panel/tasks.md
+
+blockers:
+  - "Needs a Supabase DATABASE_URL (pooler connection string, port 6543)
+     and a BETTER_AUTH_SECRET (external accounts only the user can
+     provision) before Unit 1's real migration and any runtime-harness
+     evidence can run. Code can be written/typechecked without them."
