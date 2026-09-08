@@ -1,10 +1,10 @@
 name: Sync YouTube courses
 
 on:
-  schedule:
-    # Weekly — YouTube channel uploads don't need daily re-sync, and this
-    # keeps well under the API's daily quota.
-    - cron: "0 6 * * 1"
+  # Manual only — the weekly schedule lives on the raspi cron instead
+  # (see scripts/README.md), so this doesn't double-run the sync (and
+  # double-spend YouTube API quota / send duplicate digest emails) every
+  # Monday. Kept for ad-hoc runs and as a documented fallback.
   workflow_dispatch: {}
 
 jobs:
