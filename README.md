@@ -109,3 +109,10 @@ Corre en una Raspberry Pi propia, detrás de un túnel de Cloudflare
 (`cursos.unaividal.com`), como el resto de proyectos personales del
 autor — PM2 + build `standalone` de Next.js. Ver `deploy.sh`,
 `ecosystem.config.cjs`, `start-prod.mjs`/`.sh`.
+
+## Descubrimiento automático de contenido
+
+Cron semanal en la misma Raspberry Pi que sincroniza los canales de
+YouTube curados y guarda lo nuevo como `pending` (revisión manual antes
+de publicar) — con resumen por email de lo encontrado. Ver
+`scripts/README.md`.
