@@ -33,6 +33,9 @@ export async function SiteFooter() {
             <Link href="/como-verificamos" className="hover:text-ink hover:underline underline-offset-4">
               Cómo verificamos
             </Link>
+            <Link href="/privacidad" className="hover:text-ink hover:underline underline-offset-4">
+              Privacidad
+            </Link>
             <a
               href="https://unaividal.com"
               rel="author"

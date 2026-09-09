@@ -10,6 +10,10 @@ declare global {
 }
 
 export const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
+// Google AdSense publisher id (ca-pub-...) — set once the site is
+// approved. Ads share the same consent gate as analytics: one banner,
+// one choice, both blocked on "Rechazar".
+export const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
 const CONSENT_STORAGE_KEY = "cursos-unaividal:analytics-consent";
 

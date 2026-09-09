@@ -10,6 +10,7 @@ import { FilterPills } from "@/components/courses/FilterPills";
 import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdSlot } from "@/components/ads/AdSlot";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
@@ -168,6 +169,10 @@ export default async function Home({
           </div>
         )}
       </section>
+
+      <div className="mx-auto w-full max-w-5xl px-6">
+        <AdSlot slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} />
+      </div>
 
       <section
         aria-labelledby="filters-heading"
