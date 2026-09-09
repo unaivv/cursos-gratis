@@ -3,9 +3,9 @@ import type { LucideIcon } from "lucide-react";
 import { getParamValues, toggleParamHref, type SearchParamsInput } from "@/lib/courses/query-params";
 
 const PILL_ACTIVE =
-  "inline-flex items-center gap-1.5 border border-stamp-gold bg-stamp-gold px-3 py-1.5 text-sm font-medium text-paper";
+  "inline-flex items-center gap-2.5 border border-stamp-gold bg-stamp-gold px-3 py-1.5 text-sm font-medium text-paper";
 const PILL_INACTIVE =
-  "inline-flex items-center gap-1.5 border border-rule px-3 py-1.5 text-sm text-ink-muted hover:border-ink hover:text-ink";
+  "inline-flex items-center gap-2.5 border border-rule px-3 py-1.5 text-sm text-ink-muted hover:border-ink hover:text-ink";
 
 /**
  * A row of toggle pills for one multi-select filter dimension (category,

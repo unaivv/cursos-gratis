@@ -1,0 +1,14 @@
+[
+  { "query": "curso completo de Python", "category": "programming" },
+  { "query": "curso completo de JavaScript", "category": "programming" },
+  { "query": "curso completo de React", "category": "programming" },
+  { "query": "curso completo de SQL", "category": "data-ai" },
+  { "query": "curso completo de machine learning", "category": "data-ai" },
+  { "query": "curso completo de Excel", "category": "productivity" },
+  { "query": "curso completo de Figma", "category": "design" },
+  { "query": "curso completo de edición de vídeo", "category": "design" },
+  { "query": "curso completo de inglés", "category": "languages" },
+  { "query": "curso completo de marketing digital", "category": "marketing" },
+  { "query": "curso completo de emprendimiento", "category": "business" },
+  { "query": "curso completo de AutoCAD", "category": "engineering" }
+]

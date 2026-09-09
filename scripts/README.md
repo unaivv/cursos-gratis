@@ -13,6 +13,28 @@ Udemy isn't part of this job: their affiliate API was discontinued
 site actively blocks automated fetches (403), so Udemy courses stay a
 manual `/admin` addition — see the main README's "Udemy" section.
 
+## `discover-youtube.ts` — beyond the curated channel list
+
+`sync-youtube.ts` only ever looks at channels we've already added by
+hand — a genuinely good course from a channel nobody's curated yet stays
+invisible forever. This runs a small, fixed set of category-tagged
+searches (`content/sources/youtube-search-terms.json`) instead, so
+courses from channels like MoureDev or Gentleman Programming (added as
+curated channels too, but this is how anything *not* on that list gets a
+chance) can surface.
+
+Kept deliberately separate from the channel sync: `search.list` costs
+100 quota units/call vs. ~1 for `channels.list`/`playlistItems.list`, so
+it's a short fixed term list (~12 today, one call each) rather than
+something that scales with the catalog. The only quality filter is
+`videoDuration: long` (>20 min) — search results are noisier than a
+curated channel by nature, so review these more carefully than
+channel-sync ones. Same rule as everything else: lands as `pending`,
+never auto-published.
+
+To widen coverage, add more `{ "query", "category" }` entries to
+`content/sources/youtube-search-terms.json` — no code change needed.
+
 ### Where it runs
 
 **Raspi cron** (primary) — a standalone clone at
@@ -41,7 +63,11 @@ cron as the only place that actually notifies).
 ```bash
 DATABASE_URL=... YOUTUBE_API_KEY=... [RESEND_API_KEY=... RESEND_FROM_EMAIL=... ADMIN_EMAIL=...] \
   npx tsx scripts/sync-youtube.ts
+DATABASE_URL=... YOUTUBE_API_KEY=... [RESEND_API_KEY=... RESEND_FROM_EMAIL=... ADMIN_EMAIL=...] \
+  npx tsx scripts/discover-youtube.ts
 ```
+
+The raspi cron (`run-sync.sh`) runs both, channel sync first.
 
 ## `seed-categories.ts`, `seed-admin.ts`, `migrate-courses.ts`
 
