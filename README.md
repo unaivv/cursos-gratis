@@ -1,118 +1,126 @@
 # cursos-unaividal
 
-Catálogo de cursos **gratuitos** de YouTube y Udemy, organizados por
-categoría, con verificación manual y fecha de última comprobación por
-ficha. En vivo en [cursos.unaividal.com](https://cursos.unaividal.com).
+A catalog of **free** YouTube and Udemy courses, organized by category,
+with manual verification and a last-checked date on every card. Live at
+[cursos.unaividal.com](https://cursos.unaividal.com).
 
-Ver la definición completa de los cambios (propuesta, specs, diseño,
-tareas) en `openspec/changes/course-catalog-mvp/` (catálogo inicial) y
-`openspec/changes/admin-panel/` (base de datos + panel de admin).
+See the full change definitions (proposal, specs, design, tasks) in
+`openspec/changes/course-catalog-mvp/` (initial catalog) and
+`openspec/changes/admin-panel/` (database + admin panel).
 
-## Desarrollo
+## Development
 
 ```bash
-npm run dev     # servidor de desarrollo
-npm run build   # build de producción (páginas del catálogo son dinámicas — leen Postgres en cada petición)
-npm run start   # sirve el build de producción
+npm run dev     # dev server
+npm run build   # production build (catalog pages are dynamic — read Postgres on every request)
+npm run start   # serve the production build
 npm run lint    # ESLint
 npm run test    # Vitest (unit + integration)
 ```
 
-## Base de datos
+## Database
 
-Supabase Postgres + Drizzle ORM (`src/lib/db/`). El catálogo era
-originalmente JSON en git; se migró a base de datos para poder gestionarlo
-desde el panel de admin sin esperar a un deploy — ver
+Supabase Postgres + Drizzle ORM (`src/lib/db/`). The catalog originally
+lived as JSON in git; it moved to a database so it could be managed from
+the admin panel without waiting on a deploy — see
 `openspec/changes/admin-panel/design.md`.
 
-Configuración:
+Setup:
 
-1. Copia `.env.local.example` a `.env.local`.
-2. `DATABASE_URL` — cadena de conexión de Supabase. Para scripts puntuales
-   (migraciones, siembra) vale la conexión directa (puerto 5432); si algún
-   día se despliega en Vercel, el runtime de la app necesita la del
-   **pooler** ("Transaction", puerto 6543) — ver design.md. No la pegues
-   nunca en el chat ni la commitees.
-3. `BETTER_AUTH_SECRET` — genera uno con `openssl rand -base64 32`.
-4. `npm run db:generate` — genera migraciones SQL a partir de
-   `src/lib/db/schema.ts` + `src/lib/db/auth-schema.ts` (no necesita
-   conexión real).
-5. `npm run db:migrate` — aplica las migraciones (necesita `DATABASE_URL`
-   real).
-6. `npm run db:seed` — siembra categorías (`scripts/seed-categories.ts`).
-7. `ADMIN_EMAIL`/`ADMIN_PASSWORD` (elígelos tú, no los pegues en el chat) +
-   `npx tsx scripts/seed-admin.ts` — crea el único usuario admin. No hay
-   registro público; este script es la única forma de crear una cuenta.
+1. Copy `.env.local.example` to `.env.local`.
+2. `DATABASE_URL` — Supabase connection string. The direct connection
+   (port 5432) is fine for one-off scripts (migrations, seeding); the
+   app's own runtime needs the **pooler** ("Transaction" mode, port 6543)
+   — see design.md. Never paste it in chat or commit it.
+3. `BETTER_AUTH_SECRET` — generate one with `openssl rand -base64 32`.
+4. `npm run db:generate` — generates SQL migrations from
+   `src/lib/db/schema.ts` + `src/lib/db/auth-schema.ts` (no real
+   connection needed).
+5. `npm run db:migrate` — applies the migrations (needs a real
+   `DATABASE_URL`).
+6. `npm run db:seed` — seeds categories (`scripts/seed-categories.ts`).
+7. `ADMIN_EMAIL`/`ADMIN_PASSWORD` (pick your own, don't paste them in
+   chat) + `npx tsx scripts/seed-admin.ts` — creates the single admin
+   user. There's no public sign-up; this script is the only way to
+   create an account.
 
-## Contenido: cómo se añaden cursos
+## Content: how courses get added
 
-Los cursos viven en la tabla `courses` (Supabase), no en ficheros.
-Cada curso tiene `status`: `pending` (esperando revisión) o `published`
-(visible en el sitio público). Gestión completa desde
-**`/admin`** (login: `ADMIN_EMAIL`/`ADMIN_PASSWORD` sembrados con
-`npx tsx scripts/seed-admin.ts`).
+Courses live in the `courses` table (Supabase), not in files. Every
+course has a `status`: `pending` (awaiting review) or `published`
+(visible on the public site). Full management from **`/admin`** (login:
+`ADMIN_EMAIL`/`ADMIN_PASSWORD` seeded with `npx tsx scripts/seed-admin.ts`).
 
-### YouTube (automático)
+### YouTube (automated)
 
-`scripts/sync-youtube.ts` sincroniza los canales/playlists curados en
-`content/sources/youtube-channels.json` (nunca `search.list` — cuota
-limitada a ~100 llamadas/día) y **inserta cada curso nuevo como
-`pending`** — no aparece en el sitio público hasta que se publica desde
-`/admin`. Se ejecuta:
+`scripts/sync-youtube.ts` syncs the curated channels/playlists in
+`content/sources/youtube-channels.json` (never `search.list` — quota
+limited to ~100 calls/day) and **inserts every new course as
+`pending`** — it doesn't show up on the public site until published from
+`/admin`. `scripts/discover-youtube.ts` complements it with a small set
+of category-tagged searches (`content/sources/youtube-search-terms.json`)
+so courses from channels that aren't curated yet can surface too — see
+`scripts/README.md` for the full picture (quota tradeoffs, where each
+one runs).
 
-- Localmente: `YOUTUBE_API_KEY=... DATABASE_URL=... npm run sync:youtube`
-- En CI: `.github/workflows/sync-youtube.yml`, semanal (necesita los
-  secrets `YOUTUBE_API_KEY` y `DATABASE_URL` en el repo).
+Runs:
 
-Para añadir un canal nuevo, añade una entrada a
-`content/sources/youtube-channels.json`.
+- Locally: `YOUTUBE_API_KEY=... DATABASE_URL=... npm run sync:youtube`
+- Weekly cron on the raspi that serves the site — see `scripts/README.md`.
+- CI (manual only): `.github/workflows/sync-youtube.yml`
+  (`workflow_dispatch`), needs the `YOUTUBE_API_KEY` and `DATABASE_URL`
+  repo secrets.
 
-### Udemy (curación manual — sin API)
+To add a new channel, add an entry to
+`content/sources/youtube-channels.json`. To widen the search-based
+discovery, add an entry to `content/sources/youtube-search-terms.json`.
 
-La API de afiliados de Udemy está descontinuada desde el 1/1/2025 (ver
-`openspec/changes/course-catalog-mvp/research.md`), así que los cursos de
-Udemy se añaden a mano desde `/admin`:
+### Udemy (manual curation — no API)
 
-1. Confirma manualmente que el curso es gratis (sin cupón, sin caducidad).
-2. Créalo en el panel — puede publicarse directamente (el admin es quien
-   revisa al crearlo).
-3. Re-verifica cada `content.udemy_reverify_days` días
-   (`openspec/config.yaml` — por defecto 30) que el curso siga siendo
-   gratis, y actualiza `lastVerifiedAt` desde el panel.
+Udemy's affiliate API was discontinued on 2025-01-01 (see
+`openspec/changes/course-catalog-mvp/research.md`), so Udemy courses are
+added by hand from `/admin`:
 
-## Analítica
+1. Manually confirm the course is free (no coupon, no expiry).
+2. Create it in the panel — it can be published right away (the admin is
+   the one reviewing it at creation time).
+3. Re-verify every `content.udemy_reverify_days` days
+   (`openspec/config.yaml` — 30 by default) that the course is still
+   free, and update `lastVerifiedAt` from the panel.
 
-Google Tag Manager, cargado solo tras consentimiento (banner de cookies) —
-ver `src/components/analytics/`. Configura `NEXT_PUBLIC_GTM_ID` en el
-entorno de producción para activarlo (GA4 u otras etiquetas se configuran
-dentro del propio contenedor de GTM, no en este código); sin esa
-variable, el sitio funciona igual pero sin analítica.
+## Analytics
 
-## Sugerencias de curso
+Google Tag Manager, loaded only after consent (cookie banner) — see
+`src/components/analytics/`. Set `NEXT_PUBLIC_GTM_ID` in the production
+environment to enable it (GA4 or other tags are then configured inside
+the GTM container itself, not in this code); without that variable, the
+site works the same, just without analytics.
 
-`/sugerir` — formulario público que guarda en la tabla `course_suggestions`
-(Supabase) y, si `RESEND_API_KEY`/`RESEND_FROM_EMAIL` están configurados,
-avisa por email a `ADMIN_EMAIL`. Una sugerencia nunca se publica sola —
-mismo criterio de revisión manual que el resto del catálogo.
+## Course suggestions
 
-## Peticiones populares
+`/sugerir` — a public form that saves to the `course_suggestions` table
+(Supabase) and, if `RESEND_API_KEY`/`RESEND_FROM_EMAIL` are set, notifies
+`ADMIN_EMAIL` by email. A suggestion never publishes itself — same manual
+review as the rest of the catalog.
 
-Los chips "peticiones populares" de la home son dinámicos: cada búsqueda
-en `/buscar` que encuentra al menos un resultado se registra en
-`search_queries`; la home muestra las más frecuentes de los últimos 30
-días (`src/lib/courses/popular-searches.ts`). Sin histórico suficiente,
-cae en una lista fija razonable.
+## Popular searches
 
-## Despliegue
+The "peticiones populares" chips on the home page are dynamic: every
+`/buscar` search that finds at least one result gets logged to
+`search_queries`; the home page shows the most frequent ones from the
+last 30 days (`src/lib/courses/popular-searches.ts`). Falls back to a
+fixed, reasonable list until there's enough real history.
 
-Corre en una Raspberry Pi propia, detrás de un túnel de Cloudflare
-(`cursos.unaividal.com`), como el resto de proyectos personales del
-autor — PM2 + build `standalone` de Next.js. Ver `deploy.sh`,
-`ecosystem.config.cjs`, `start-prod.mjs`/`.sh`.
+## Deployment
 
-## Descubrimiento automático de contenido
+Runs on the author's own Raspberry Pi, behind a Cloudflare tunnel
+(`cursos.unaividal.com`), like the rest of their personal projects — PM2
++ a Next.js `standalone` build. See `deploy.sh`, `ecosystem.config.cjs`,
+`start-prod.mjs`/`.sh`.
 
-Cron semanal en la misma Raspberry Pi que sincroniza los canales de
-YouTube curados y guarda lo nuevo como `pending` (revisión manual antes
-de publicar) — con resumen por email de lo encontrado. Ver
-`scripts/README.md`.
+## Automated content discovery
+
+A weekly cron on the same Raspberry Pi runs the YouTube channel sync and
+the broader search-based discovery, saving anything new as `pending`
+(manual review before publishing) — with an email digest of what it
+found. See `scripts/README.md`.
