@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Public_Sans, Courier_Prime } from "next/font/google";
 import { ConsentGate } from "@/components/analytics/ConsentGate";
+import { AdSenseScript } from "@/components/ads/AdSenseScript";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />
         <ConsentGate />
+        <AdSenseScript />
       </body>
     </html>
   );

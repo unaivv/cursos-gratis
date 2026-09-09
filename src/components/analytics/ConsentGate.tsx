@@ -1,10 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import Link from "next/link";
 import Script from "next/script";
 import {
-  ADSENSE_CLIENT_ID,
   GTM_ID,
   getConsentServerSnapshot,
   getConsentSnapshot,
@@ -13,15 +11,21 @@ import {
 } from "./gtag";
 
 /**
- * Minimal EU-compliant cookie-consent gate for Google Tag Manager AND
- * Google AdSense (design.md — Decision: Outbound click tracking; ads
- * added later, same gate). Both share one consent choice: nothing loads
- * until the visitor accepts, declining keeps the site fully functional
- * with neither. No `<noscript>` fallback iframe — Google's default GTM
+ * Minimal EU-compliant cookie-consent gate for Google Tag Manager
+ * (design.md — Decision: Outbound click tracking). GTM only loads after
+ * the visitor accepts; declining keeps the site fully functional with no
+ * tracking script. No `<noscript>` fallback iframe — Google's default
  * snippet loads it unconditionally, which would track visitors with JS
  * disabled without ever showing them the consent banner (itself a client
- * component). Skipping it keeps "no consent → no tracking/ads" actually
- * true.
+ * component). Skipping it keeps "no consent → no tracking" actually true.
+ *
+ * Ad consent is a SEPARATE concern, handled by Google's own Funding
+ * Choices CMP (see FundingChoicesScript in layout.tsx) — not this gate.
+ * AdSense's script loads unconditionally for everyone; Funding Choices
+ * is what shows EEA/UK/CH visitors their own prompt and decides
+ * personalized vs. non-personalized ads from that. Gating adsbygoogle.js
+ * behind this banner too would mean an EEA visitor accepts here, THEN
+ * gets asked again by Google's own prompt — two banners for one thing.
  */
 export function ConsentGate() {
   const choice = useSyncExternalStore(
@@ -30,8 +34,7 @@ export function ConsentGate() {
     getConsentServerSnapshot
   );
 
-  const hasAnythingToGate = Boolean(GTM_ID) || Boolean(ADSENSE_CLIENT_ID);
-  if (!hasAnythingToGate || choice === "denied") return null;
+  if (!GTM_ID || choice === "denied") return null;
 
   if (choice === "pending") {
     return (
@@ -43,9 +46,8 @@ export function ConsentGate() {
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p className="text-ink">
             <span className="font-mono text-xs text-ink-muted">nota — </span>
-            Usamos cookies de analítica y publicidad para medir qué fichas se usan y
-            mostrar anuncios. Puedes rechazarlas sin que deje de funcionar el catálogo —
-            ver <Link href="/privacidad" className="underline underline-offset-2 hover:text-stamp-red">política de privacidad</Link>.
+            Medimos qué fichas se usan con cookies de analítica. Puedes
+            rechazarlas sin que deje de funcionar el catálogo.
           </p>
           <div className="flex shrink-0 gap-2">
             <button
@@ -70,23 +72,10 @@ export function ConsentGate() {
 
   // choice === "granted"
   return (
-    <>
-      {GTM_ID && (
-        <Script id="gtm-init" strategy="afterInteractive">
-          {`
-            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GTM_ID}');
-          `}
-        </Script>
-      )}
-      {ADSENSE_CLIENT_ID && (
-        <Script
-          id="adsense-init"
-          strategy="afterInteractive"
-          async
-          crossOrigin="anonymous"
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
-        />
-      )}
-    </>
+    <Script id="gtm-init" strategy="afterInteractive">
+      {`
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GTM_ID}');
+      `}
+    </Script>
   );
 }

@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
-import {
-  ADSENSE_CLIENT_ID,
-  getConsentServerSnapshot,
-  getConsentSnapshot,
-  subscribeToConsent,
-} from "@/components/analytics/gtag";
+import { useEffect } from "react";
+import { ADSENSE_CLIENT_ID } from "@/components/analytics/gtag";
 
 declare global {
   interface Window {
@@ -15,21 +10,17 @@ declare global {
 }
 
 /**
- * One AdSense ad unit, gated by the same consent choice as analytics
- * (ConsentGate) — renders nothing at all until: (1) a publisher id is
- * configured (NEXT_PUBLIC_ADSENSE_CLIENT_ID), (2) this specific slot has
- * an id (passed as a prop, itself normally read from its own env var by
- * the caller — see src/app/page.tsx), and (3) the visitor accepted.
- * Framed as a labeled card like everything else in the catalog, not a
- * bare foreign banner.
+ * One AdSense ad unit — renders whenever a publisher id and this specific
+ * slot's id are both configured (see env vars, e.g. NEXT_PUBLIC_ADSENSE_
+ * SLOT_HOME, read by the caller). NOT gated by our own analytics consent
+ * banner: ad consent for EEA/UK/CH visitors is Google's own Funding
+ * Choices CMP's job (see AdSenseScript) — it decides personalized vs.
+ * non-personalized vs. nothing from its own prompt, independently of
+ * whether someone accepted our GTM banner. Framed as a labeled card like
+ * everything else in the catalog, not a bare foreign banner.
  */
 export function AdSlot({ slotId, label = "Publicidad" }: { slotId?: string; label?: string }) {
-  const choice = useSyncExternalStore(
-    subscribeToConsent,
-    getConsentSnapshot,
-    getConsentServerSnapshot
-  );
-  const canShow = Boolean(ADSENSE_CLIENT_ID) && Boolean(slotId) && choice === "granted";
+  const canShow = Boolean(ADSENSE_CLIENT_ID) && Boolean(slotId);
 
   useEffect(() => {
     if (!canShow) return;

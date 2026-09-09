@@ -46,11 +46,10 @@ export default function PrivacyPage() {
               guardamos la URL, tu nota y tu email si decides darlo (es opcional).
             </li>
             <li>
-              <strong className="text-ink">Analítica y publicidad</strong> (Google Tag
-              Manager / Google AdSense) — <em>solo si aceptas el aviso de cookies</em>. Mide
-              qué fichas se usan y, si hay anuncios activos, los muestra. Puedes rechazarlo
-              sin que el catálogo deje de funcionar; tu elección se guarda en tu navegador
-              (localStorage), no en un servidor.
+              <strong className="text-ink">Analítica</strong> (Google Tag Manager) —{" "}
+              <em>solo si aceptas el aviso de cookies</em> que aparece al entrar. Mide qué
+              fichas se usan. Puedes rechazarlo sin que el catálogo deje de funcionar; tu
+              elección se guarda en tu navegador (localStorage), no en un servidor.
             </li>
           </ul>
         </section>
@@ -58,10 +57,11 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="font-serif text-xl text-ink">Publicidad</h2>
           <p>
-            Si este sitio muestra anuncios, los sirve Google AdSense. Google puede usar
-            cookies para personalizarlos según tus visitas a este y otros sitios — solo si
-            aceptaste el aviso de cookies. Puedes gestionar las preferencias de anuncios de
-            Google en{" "}
+            Este sitio puede mostrar anuncios servidos por Google AdSense. Es un consentimiento
+            aparte del de analítica: si estás en el Espacio Económico Europeo, Reino Unido o
+            Suiza, Google te mostrará su propio aviso (gestionado por su plataforma de
+            consentimiento, no por el banner de cookies de este sitio) para decidir si los
+            anuncios se personalizan según tu navegación. Puedes gestionar esas preferencias en{" "}
             <a
               href="https://adssettings.google.com"
               rel="noopener noreferrer"
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
           <p>
             No vendemos tus datos. No pedimos cuenta ni contraseña para usar el catálogo. No
             compartimos tu email de sugerencia con nadie salvo, si aceptas cookies, con Google
-            (analítica/publicidad) en la forma descrita arriba.
+            (analítica y, si corresponde, publicidad) en la forma descrita arriba.
           </p>
         </section>
 
