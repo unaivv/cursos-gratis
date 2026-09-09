@@ -18,6 +18,12 @@ describe("buildCourseSlug", () => {
       "learn-python-full-course-abc123"
     );
   });
+
+  it("sanitizes underscores in the video id (real YouTube IDs can contain them)", () => {
+    // Regression: an unsanitized `_` in the id broke courseRecordSchema's
+    // kebab-case slug validation in production (ZodError, sync crashed).
+    expect(buildCourseSlug("Some Title", "abc_DEF-123")).toBe("some-title-abc-def-123");
+  });
 });
 
 describe("mapVideoToCourseRecord", () => {

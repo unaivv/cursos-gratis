@@ -164,8 +164,14 @@ async function main() {
 
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMainModule) {
-  main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  });
+  // The postgres.js connection stays open on an uncaught error —
+  // process.exitCode alone doesn't force Node to exit while a handle is
+  // still open, so the process (and any cron/CI runner waiting on it)
+  // hangs indefinitely instead of failing fast. Force it.
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(() => process.exit(process.exitCode ?? 0));
 }

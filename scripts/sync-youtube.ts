@@ -55,7 +55,15 @@ export function buildCourseSlug(title: string, videoId: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60)
     .replace(/-+$/g, "");
-  return base ? `${base}-${videoId.toLowerCase()}` : videoId.toLowerCase();
+  // YouTube video IDs can contain `-` and `_` (base64url-ish) — `_` isn't
+  // valid in our kebab-case slug (courseRecordSchema), so it needs the
+  // same sanitizing pass as the title, not a bare .toLowerCase(). Caught
+  // by a real ZodError crash in production before this fix.
+  const safeVideoId = videoId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return base ? `${base}-${safeVideoId}` : safeVideoId;
 }
 
 export function mapVideoToCourseRecord(
@@ -247,8 +255,14 @@ async function main() {
 
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMainModule) {
-  main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  });
+  // The postgres.js connection stays open on an uncaught error —
+  // process.exitCode alone doesn't force Node to exit while a handle is
+  // still open, so the process (and any cron/CI runner waiting on it)
+  // hangs indefinitely instead of failing fast. Force it.
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(() => process.exit(process.exitCode ?? 0));
 }
