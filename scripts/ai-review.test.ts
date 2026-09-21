@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildReviewMessage, prefilterReason, reviewVideo, toDecision, type ParseClient } from "./ai-review";
+import {
+  buildCliArgs,
+  buildReviewMessage,
+  createCliReviewer,
+  parseCliOutput,
+  prefilterReason,
+  reviewBackend,
+  reviewVideo,
+  reviewVideoWithCli,
+  toDecision,
+  type CliRunner,
+  type ParseClient,
+} from "./ai-review";
 
 const goodCourse = {
   is_course: true,
@@ -96,5 +108,91 @@ describe("reviewVideo", () => {
     await expect(
       reviewVideo(fake({ stop_reason: "end_turn", parsed_output: { is_course: true } }), "m", input, {})
     ).rejects.toThrow(/schema/);
+  });
+});
+
+describe("reviewBackend", () => {
+  it("prefers the subscription token, then the API key, else null", () => {
+    expect(reviewBackend({ CLAUDE_CODE_OAUTH_TOKEN: "t", ANTHROPIC_API_KEY: "k" })).toBe("cli");
+    expect(reviewBackend({ ANTHROPIC_API_KEY: "k" })).toBe("api");
+    expect(reviewBackend({})).toBeNull();
+  });
+
+  it("lets AI_REVIEW_BACKEND force one", () => {
+    expect(reviewBackend({ AI_REVIEW_BACKEND: "api", CLAUDE_CODE_OAUTH_TOKEN: "t" })).toBe("api");
+    expect(reviewBackend({ AI_REVIEW_BACKEND: "cli" })).toBe("cli");
+  });
+});
+
+const cliInput = {
+  title: "Curso de Python",
+  category: "Programación",
+  kind: "vídeo" as const,
+  durationSeconds: 3600,
+  publishedYear: null,
+  chapters: [],
+  description: "",
+};
+
+describe("buildCliArgs", () => {
+  const args = buildCliArgs(cliInput, "sonnet");
+
+  it("disables every tool and never uses --bare (which ignores the subscription login)", () => {
+    expect(args[args.indexOf("--tools") + 1]).toBe("");
+    expect(args).not.toContain("--bare");
+    expect(args).toContain("--no-session-persistence");
+    expect(args).toContain("--strict-mcp-config");
+  });
+
+  it("passes the prompt, a JSON schema and the model", () => {
+    expect(args[0]).toBe("-p");
+    expect(args[1]).toContain("<video_data>");
+    const schema = JSON.parse(args[args.indexOf("--json-schema") + 1]);
+    expect(schema.properties).toHaveProperty("is_course");
+    expect(schema).not.toHaveProperty("$schema");
+    expect(args[args.indexOf("--model") + 1]).toBe("sonnet");
+  });
+});
+
+describe("parseCliOutput", () => {
+  const envelope = (extra: object) => JSON.stringify({ is_error: false, subtype: "success", ...extra });
+
+  it("reads structured_output", () => {
+    const decision = parseCliOutput(envelope({ structured_output: goodCourse }));
+    expect(decision.isCourse).toBe(true);
+  });
+
+  it("falls back to parsing the result text", () => {
+    expect(parseCliOutput(envelope({ result: JSON.stringify(goodCourse) })).isCourse).toBe(true);
+  });
+
+  it("throws on CLI errors, non-JSON output and schema mismatches", () => {
+    expect(() => parseCliOutput(JSON.stringify({ is_error: true, subtype: "error_during_execution", result: "rate limit" }))).toThrow(/error/);
+    expect(() => parseCliOutput("not json")).toThrow(/not JSON/);
+    expect(() => parseCliOutput(envelope({ structured_output: { is_course: true } }))).toThrow(/schema/);
+  });
+});
+
+describe("CLI reviewer", () => {
+  it("returns a decision from the runner's stdout", async () => {
+    const run: CliRunner = async () => ({
+      stdout: JSON.stringify({ is_error: false, subtype: "success", structured_output: goodCourse }),
+      stderr: "",
+      code: 0,
+    });
+    const decision = await reviewVideoWithCli(run, "sonnet", cliInput);
+    expect(decision.isCourse).toBe(true);
+  });
+
+  it("throws when the CLI prints nothing so the video is retried", async () => {
+    const run: CliRunner = async () => ({ stdout: "", stderr: "boom", code: 1 });
+    await expect(reviewVideoWithCli(run, "sonnet", cliInput)).rejects.toThrow(/no output.*boom/);
+  });
+
+  it("fails early when the CLI is missing", async () => {
+    const run: CliRunner = async () => {
+      throw new Error("spawn claude ENOENT");
+    };
+    await expect(createCliReviewer("sonnet", run)).rejects.toThrow(/CLAUDE_BIN/);
   });
 });

@@ -14,7 +14,8 @@
  * Anything that failed to review (API error, refusal, missing video) is
  * skipped and simply retried on the next run.
  *
- * AI review needs ANTHROPIC_API_KEY. Without it the length prefilter still
+ * AI review needs CLAUDE_CODE_OAUTH_TOKEN (Claude subscription, via the
+ * Claude Code CLI) or ANTHROPIC_API_KEY (API credit). Without either the length prefilter still
  * runs and the rest fall back to the old behaviour (pending, no summary),
  * with a loud warning — an unconfigured key must not silently lose videos.
  */
@@ -24,7 +25,7 @@ import { courses as coursesTable, rejectedVideos, type NewCourseRow } from "../s
 import { escapeHtml } from "../src/lib/email/send";
 import type { CourseRecord } from "../src/lib/courses/schema";
 import { parseChapters } from "../src/lib/courses/youtube-meta";
-import { createReviewer, prefilterReason, type ReviewDecision, type ReviewInput } from "./ai-review";
+import { createReviewer, prefilterReason, reviewBackend, type ReviewDecision, type ReviewInput } from "./ai-review";
 import { fetchVideos, videoEnrichmentFields, type VideoItem } from "./enrich-youtube";
 
 export type Reviewer = (input: ReviewInput) => Promise<ReviewDecision>;
@@ -126,16 +127,18 @@ export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: st
   const videos = await fetchVideos(fresh.map((r) => r.youtube!.videoId!), youtubeApiKey);
 
   let reviewer: Reviewer | "unconfigured" | "unavailable";
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const backend = reviewBackend();
+  if (!backend) {
     console.warn(
-      "WARNING: ANTHROPIC_API_KEY is not set — new videos are added as pending WITHOUT AI review or summary."
+      "WARNING: neither CLAUDE_CODE_OAUTH_TOKEN nor ANTHROPIC_API_KEY is set — new videos are added as pending WITHOUT AI review or summary."
     );
     reviewer = "unconfigured";
   } else {
     try {
-      reviewer = await createReviewer();
+      reviewer = await createReviewer(backend);
+      console.log(`AI review backend: ${backend}`);
     } catch (error) {
-      console.error("AI review unavailable (did you run `npm ci` after pulling?):", error);
+      console.error(`AI review unavailable (backend ${backend}; did you run \`npm ci\` / install Claude Code?):`, error);
       reviewer = "unavailable";
     }
   }
@@ -196,7 +199,7 @@ export function intakeDigestHtml(result: IntakeResult, intro: string): string {
     .join("");
   const noAi = result.aiConfigured
     ? ""
-    : "<p><strong>Ojo:</strong> ANTHROPIC_API_KEY no está configurada; estos vídeos NO pasaron la revisión IA ni tienen resumen.</p>";
+    : "<p><strong>Ojo:</strong> no hay credenciales de IA configuradas (CLAUDE_CODE_OAUTH_TOKEN o ANTHROPIC_API_KEY); estos vídeos NO pasaron la revisión IA ni tienen resumen.</p>";
   const skipped =
     result.skipped.length > 0
       ? `<p>${result.skipped.length} vídeo(s) no se pudieron revisar y se reintentarán en la próxima ejecución.</p>`

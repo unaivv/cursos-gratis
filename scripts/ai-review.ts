@@ -7,13 +7,35 @@
  * Pure helpers (prefilter, prompt, validation) are exported and unit
  * tested; `reviewVideo` is the one function that talks to the API.
  */
+import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
 import { z } from "zod";
 import { aiContentSchema, type AiContent } from "../src/lib/courses/ai-content";
 
 /** Anything shorter is a clip/short/news item, never a course — no API call needed. */
 export const MIN_COURSE_SECONDS = 600;
 
-export const DEFAULT_REVIEW_MODEL = "claude-opus-5";
+/** Default model per backend: an API model ID, or a Claude Code alias. */
+export const DEFAULT_API_MODEL = "claude-opus-5";
+export const DEFAULT_CLI_MODEL = "sonnet";
+
+export type ReviewBackend = "cli" | "api";
+
+/**
+ * Which backend reviews new videos, from the environment:
+ *   - `cli`: Claude Code in headless mode, billed to a Claude subscription
+ *     (CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`) — no API credit.
+ *   - `api`: the Anthropic API (ANTHROPIC_API_KEY) — needs API credit.
+ * AI_REVIEW_BACKEND forces one; otherwise the subscription token wins
+ * when both are set. null = nothing configured.
+ */
+export function reviewBackend(env: Record<string, string | undefined> = process.env): ReviewBackend | null {
+  const forced = env.AI_REVIEW_BACKEND;
+  if (forced === "cli" || forced === "api") return forced;
+  if (env.CLAUDE_CODE_OAUTH_TOKEN) return "cli";
+  if (env.ANTHROPIC_API_KEY) return "api";
+  return null;
+}
 
 export type ReviewInput = {
   title: string;
@@ -38,7 +60,7 @@ export function prefilterReason(durationSeconds: number | null): string | null {
   return null;
 }
 
-const modelOutputSchema = z.object({
+export const modelOutputSchema = z.object({
   is_course: z.boolean(),
   reason: z.string(),
   summary: z.string().nullable(),
@@ -143,7 +165,7 @@ export async function reviewVideo(
  * a checkout that hasn't run `npm ci` yet only loses the AI review (the
  * caller catches this) instead of crashing the whole weekly sync at import.
  */
-export async function createReviewer(model = process.env.AI_REVIEW_MODEL || DEFAULT_REVIEW_MODEL) {
+export async function createApiReviewer(model = process.env.AI_REVIEW_MODEL || DEFAULT_API_MODEL) {
   const [{ default: AnthropicClient }, { zodOutputFormat }] = await Promise.all([
     import("@anthropic-ai/sdk"),
     import("@anthropic-ai/sdk/helpers/zod"),
@@ -156,4 +178,117 @@ export async function createReviewer(model = process.env.AI_REVIEW_MODEL || DEFA
   };
   const outputFormat = zodOutputFormat(modelOutputSchema);
   return (input: ReviewInput) => reviewVideo(client, model, input, outputFormat);
+}
+
+// ---- Claude Code (subscription) backend --------------------------------
+
+const CLI_TIMEOUT_MS = 180_000;
+
+export type CliRunner = (args: string[]) => Promise<{ stdout: string; stderr: string; code: number | null }>;
+
+/**
+ * Arguments for a locked-down headless review: no tools at all (so text
+ * hidden in a video description can't make it do anything), no MCP, no
+ * skills, nothing persisted. Deliberately NOT `--bare`: that mode ignores
+ * the subscription login and only accepts an API key.
+ */
+export function buildCliArgs(input: ReviewInput, model: string): string[] {
+  // The CLI's schema validator doesn't know the 2020-12 meta-schema zod stamps on.
+  const { $schema: _metaSchema, ...jsonSchema } = z.toJSONSchema(modelOutputSchema) as Record<string, unknown>;
+  void _metaSchema;
+  return [
+    "-p",
+    buildReviewMessage(input),
+    "--system-prompt",
+    REVIEW_SYSTEM_PROMPT,
+    "--tools",
+    "",
+    "--no-session-persistence",
+    "--output-format",
+    "json",
+    "--json-schema",
+    JSON.stringify(jsonSchema),
+    "--model",
+    model,
+    "--effort",
+    "low",
+    "--disable-slash-commands",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "dontAsk",
+  ];
+}
+
+/** Extracts the structured decision from `claude -p --output-format json` stdout. */
+export function parseCliOutput(stdout: string): ReviewDecision {
+  let envelope: {
+    is_error?: boolean;
+    subtype?: string;
+    result?: string;
+    structured_output?: unknown;
+  };
+  try {
+    envelope = JSON.parse(stdout);
+  } catch {
+    throw new Error("claude output was not JSON");
+  }
+  if (envelope.is_error || (envelope.subtype && envelope.subtype !== "success")) {
+    throw new Error(`claude reported an error (${envelope.subtype ?? "unknown"}): ${String(envelope.result).slice(0, 200)}`);
+  }
+  let raw = envelope.structured_output;
+  if (raw === undefined && typeof envelope.result === "string") {
+    try {
+      raw = JSON.parse(envelope.result);
+    } catch {
+      raw = undefined;
+    }
+  }
+  const decision = toDecision(raw);
+  if (!decision) throw new Error("review output did not match the expected schema");
+  return decision;
+}
+
+/** Runs the CLI in an empty temp dir with stdin closed (else it waits 3s for piped input). */
+const runClaude: CliRunner = (args) =>
+  new Promise((resolve, reject) => {
+    const child = spawn(process.env.CLAUDE_BIN || "claude", args, {
+      cwd: tmpdir(),
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: CLI_TIMEOUT_MS,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stderr.on("data", (chunk) => (stderr += chunk));
+    child.on("error", reject);
+    child.on("close", (code) => resolve({ stdout, stderr, code }));
+  });
+
+export async function reviewVideoWithCli(
+  run: CliRunner,
+  model: string,
+  input: ReviewInput
+): Promise<ReviewDecision> {
+  const { stdout, stderr, code } = await run(buildCliArgs(input, model));
+  if (!stdout.trim()) {
+    throw new Error(`claude produced no output (exit ${code})${stderr.trim() ? `: ${stderr.trim().slice(0, 300)}` : ""}`);
+  }
+  return parseCliOutput(stdout);
+}
+
+export async function createCliReviewer(
+  model = process.env.AI_REVIEW_MODEL || DEFAULT_CLI_MODEL,
+  run: CliRunner = runClaude
+) {
+  // Fail early with a clear message if the CLI isn't installed / on PATH.
+  const check = await run(["--version"]).catch((error: Error) => {
+    throw new Error(`Claude Code CLI not found (set CLAUDE_BIN to its full path): ${error.message}`);
+  });
+  if (check.code !== 0) throw new Error("Claude Code CLI failed its --version check");
+  return (input: ReviewInput) => reviewVideoWithCli(run, model, input);
+}
+
+/** Builds the reviewer for whichever backend the environment configures. */
+export async function createReviewer(backend: ReviewBackend) {
+  return backend === "cli" ? createCliReviewer() : createApiReviewer();
 }

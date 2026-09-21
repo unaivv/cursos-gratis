@@ -84,13 +84,23 @@ through `intake-youtube.ts` instead of dumping it in the admin queue:
 5. Review errors / refusals / missing videos are **skipped and retried** next
    run — never treated as a rejection.
 
-Needs `ANTHROPIC_API_KEY` in the environment (raspi cron `.env`, and the
-GitHub secret). Model defaults to `claude-opus-5`, override with
-`AI_REVIEW_MODEL`. Without the key the length prefilter still runs and the
-rest are added as pending *without* a summary, with a warning in the log
-and the digest email. After pulling this change on the raspi run `npm ci`
-(the SDK is a new dev dependency; if it's missing only the AI review is
-lost, the rest of the sync still runs).
+Two backends, picked from the environment (`AI_REVIEW_BACKEND` forces one):
+
+- **`cli` (no API credit):** Claude Code in headless mode, billed to a Claude
+  subscription. Needs the CLI installed on the host
+  (`npm i -g @anthropic-ai/claude-code`) and `CLAUDE_CODE_OAUTH_TOKEN` from
+  `claude setup-token` in the cron `.env`. Runs with every tool disabled, no
+  MCP, nothing persisted (never `--bare`: that mode ignores the subscription
+  login). If cron's PATH doesn't find `claude`, set `CLAUDE_BIN` to its full
+  path. Model alias defaults to `sonnet`.
+- **`api`:** the Anthropic API with `ANTHROPIC_API_KEY` (needs API credit),
+  model `claude-opus-5` by default.
+
+`AI_REVIEW_MODEL` overrides the model for either. With no credentials the
+length prefilter still runs and the rest are added as pending *without* a
+summary, with a warning in the log and the digest email. After pulling on
+the raspi run `npm ci` (`run-sync.sh` already does; if the SDK/CLI is
+missing only the AI review is lost, the rest of the sync still runs).
 
 To rescue a video the AI rejected: delete its row from `rejected_videos`
 and it will be reviewed again next run, or add it by hand from `/admin`.
