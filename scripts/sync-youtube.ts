@@ -25,14 +25,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../src/lib/db/client";
-import { escapeHtml, sendAdminNotification } from "../src/lib/email/send";
+import { sendAdminNotification } from "../src/lib/email/send";
 import { courses as coursesTable, type NewCourseRow } from "../src/lib/db/schema";
 import { toCourseRecord } from "../src/lib/courses/read";
 import { courseRecordSchema, type CourseRecord } from "../src/lib/courses/schema";
+import { callYoutubeApi, QuotaExceededError } from "./youtube-api";
+import { enrichYoutubeCourses } from "./enrich-youtube";
+import { intakeDigestHtml, intakeNewVideos } from "./intake-youtube";
+
+export { QuotaExceededError };
 
 const CONTENT_ROOT = path.join(process.cwd(), "content");
 const SOURCES_PATH = path.join(CONTENT_ROOT, "sources", "youtube-channels.json");
-const API_BASE = "https://www.googleapis.com/youtube/v3";
 
 export type CuratedSource = {
   channelId: string;
@@ -117,31 +121,6 @@ async function readExistingYoutubeCourses(): Promise<CourseRecord[]> {
   return rows.map(toCourseRecord);
 }
 
-/** Thrown when the YouTube API reports quota exhaustion (403 quotaExceeded). */
-export class QuotaExceededError extends Error {}
-
-async function callYoutubeApi<T>(
-  endpoint: string,
-  params: Record<string, string>,
-  apiKey: string
-): Promise<T> {
-  const url = new URL(`${API_BASE}/${endpoint}`);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  url.searchParams.set("key", apiKey);
-
-  const response = await fetch(url);
-  if (response.status === 403) {
-    const body = await response.text();
-    if (body.includes("quotaExceeded")) {
-      throw new QuotaExceededError(`YouTube API quota exceeded calling ${endpoint}`);
-    }
-  }
-  if (!response.ok) {
-    throw new Error(`YouTube API ${endpoint} failed: ${response.status} ${await response.text()}`);
-  }
-  return (await response.json()) as T;
-}
-
 async function fetchUploadsPlaylistId(channelId: string, apiKey: string): Promise<string> {
   const data = await callYoutubeApi<{
     items: { contentDetails: { relatedPlaylists: { uploads: string } } }[];
@@ -203,7 +182,12 @@ async function main() {
     (r) => r.youtube?.videoId && !existingVideoIds.has(r.youtube.videoId)
   );
 
-  const merged = dedupeByVideoId(existing, incoming);
+  // New videos go through the AI intake review below; only videos we
+  // already know about are refreshed in place here.
+  const newVideoIds = new Set(newlyDiscovered.map((r) => r.youtube?.videoId));
+  const merged = dedupeByVideoId(existing, incoming).filter(
+    (r) => !newVideoIds.has(r.youtube?.videoId)
+  );
   for (const record of merged) {
     const row: NewCourseRow = {
       slug: record.slug,
@@ -231,24 +215,30 @@ async function main() {
         },
       });
   }
-  console.log(`Synced ${merged.length} YouTube course records from ${sources.length} curated sources.`);
-  console.log(`${newlyDiscovered.length} new video(s) this run.`);
+  console.log(`Refreshed ${merged.length} known YouTube course records from ${sources.length} curated sources.`);
 
-  if (newlyDiscovered.length > 0) {
-    const itemsHtml = newlyDiscovered
-      .map(
-        (r) =>
-          `<li><a href="${escapeHtml(r.sourceUrl)}">${escapeHtml(r.title)}</a> — ${escapeHtml(r.category)}</li>`
-      )
-      .join("");
+  const intake = await intakeNewVideos(newlyDiscovered, apiKey);
+  console.log(
+    `${newlyDiscovered.length} new video(s): ${intake.approved.length} approved (pending, ready to review), ` +
+      `${intake.rejected.length} rejected, ${intake.skipped.length} to retry next run.`
+  );
+
+  // Fill in duration/chapters/description for older rows not enriched yet.
+  // Best-effort: a failure here must not skip the digest email below.
+  try {
+    await enrichYoutubeCourses(apiKey);
+  } catch (error) {
+    console.error("Enrichment failed (sync itself succeeded):", error);
+  }
+
+  if (intake.approved.length > 0 || intake.rejected.length > 0) {
     await sendAdminNotification(
-      `${newlyDiscovered.length} curso(s) nuevo(s) de YouTube — pendientes de revisión`,
-      `
-        <p>El sync semanal de YouTube encontró ${newlyDiscovered.length} vídeo(s) nuevo(s),
-        guardados como <strong>pendiente</strong> — no se ven en el sitio hasta que los publiques
-        desde <a href="https://cursos.unaividal.com/admin">/admin</a>.</p>
-        <ul>${itemsHtml}</ul>
-      `
+      `${intake.approved.length} curso(s) nuevo(s) de YouTube listos para aprobar`,
+      intakeDigestHtml(
+        intake,
+        `El sync semanal de YouTube encontró ${newlyDiscovered.length} vídeo(s) nuevo(s). Los aprobados quedan
+        como <strong>pendiente</strong>, con resumen, y no se ven en el sitio hasta que los publiques.`
+      )
     );
   }
 }

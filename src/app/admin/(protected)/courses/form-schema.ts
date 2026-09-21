@@ -14,11 +14,13 @@ export function parseCourseForm(formData: FormData) {
   const youtubeChannelId = String(formData.get("youtubeChannelId") ?? "").trim();
 
   const author = String(formData.get("author") ?? "").trim();
+  const editorNote = String(formData.get("editorNote") ?? "").trim();
 
   const candidate = {
     slug: String(formData.get("slug") ?? "").trim(),
     title: String(formData.get("title") ?? "").trim(),
     ...(author ? { author } : {}),
+    ...(editorNote ? { editorNote } : {}),
     platform,
     category: String(formData.get("category") ?? "").trim(),
     sourceUrl: String(formData.get("sourceUrl") ?? "").trim(),

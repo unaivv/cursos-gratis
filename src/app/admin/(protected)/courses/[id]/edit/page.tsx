@@ -35,6 +35,7 @@ export default async function EditCoursePage({
           sourceUrl: course.sourceUrl,
           status: course.status,
           lastVerifiedAt: course.lastVerifiedAt,
+          editorNote: course.editorNote ?? undefined,
           youtubeVideoId: course.youtubeVideoId ?? undefined,
           youtubePlaylistId: course.youtubePlaylistId ?? undefined,
           youtubeChannelId: course.youtubeChannelId ?? undefined,

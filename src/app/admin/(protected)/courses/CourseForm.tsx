@@ -32,6 +32,7 @@ export function CourseForm({
     sourceUrl: string;
     status: "pending" | "published";
     lastVerifiedAt: string;
+    editorNote?: string;
     youtubeVideoId?: string;
     youtubePlaylistId?: string;
     youtubeChannelId?: string;
@@ -187,6 +188,18 @@ export function CourseForm({
           className="border border-rule bg-card px-3 py-2 text-ink"
         />
         {errors.lastVerifiedAt && <span className="text-stamp-red">{errors.lastVerifiedAt}</span>}
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm text-ink-muted">
+        Nota editorial (opcional)
+        <textarea
+          name="editorNote"
+          rows={5}
+          defaultValue={defaultValues?.editorNote}
+          placeholder="Por qué lo recomiendas, para quién es, qué esperar. Se muestra en la ficha pública."
+          className="border border-rule bg-card px-3 py-2 text-ink"
+        />
+        {errors.editorNote && <span className="text-stamp-red">{errors.editorNote}</span>}
       </label>
 
       <label className="flex flex-col gap-1 text-sm text-ink-muted">

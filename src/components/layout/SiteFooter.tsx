@@ -30,8 +30,17 @@ export async function SiteFooter() {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
+            <Link href="/guias" className="hover:text-ink hover:underline underline-offset-4">
+              Guías
+            </Link>
             <Link href="/como-verificamos" className="hover:text-ink hover:underline underline-offset-4">
               Cómo verificamos
+            </Link>
+            <Link href="/sobre-el-proyecto" className="hover:text-ink hover:underline underline-offset-4">
+              Sobre el proyecto
+            </Link>
+            <Link href="/contacto" className="hover:text-ink hover:underline underline-offset-4">
+              Contacto
             </Link>
             <Link href="/privacidad" className="hover:text-ink hover:underline underline-offset-4">
               Privacidad

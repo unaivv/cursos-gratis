@@ -22,6 +22,7 @@ function toRow(data: ReturnType<typeof parseCourseForm>["data"]): NewCourseRow {
     freeStatus: data.freeStatus,
     status: data.status,
     lastVerifiedAt: data.lastVerifiedAt,
+    editorNote: data.editorNote ?? null,
     youtubeVideoId: data.youtube?.videoId ?? null,
     youtubePlaylistId: data.youtube?.playlistId ?? null,
     youtubeChannelId: data.youtube?.channelId ?? null,

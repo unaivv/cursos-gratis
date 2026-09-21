@@ -11,6 +11,7 @@ import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { GUIDES } from "@/lib/editorial/guides";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
@@ -249,6 +250,31 @@ export default async function Home({
             </Link>
           </div>
         )}
+      </section>
+
+      <section aria-labelledby="guides-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
+        <div className="mb-6 flex items-baseline justify-between gap-4">
+          <h2 id="guides-heading" className="font-serif text-2xl text-ink">
+            Guías para empezar
+          </h2>
+          <Link href="/guias" className="text-sm text-ink-muted underline underline-offset-4 hover:text-ink">
+            Todas las guías →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {GUIDES.slice(0, 3).map((guide) => (
+            <Link
+              key={guide.slug}
+              href={`/guias/${guide.slug}`}
+              className="group flex flex-col gap-2 border border-rule bg-card p-5 transition-colors hover:border-ink"
+            >
+              <h3 className="font-serif text-lg leading-snug text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
+                {guide.title}
+              </h3>
+              <p className="text-sm text-ink-muted">{guide.description}</p>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="mx-auto w-full max-w-5xl px-6 pb-16">

@@ -107,6 +107,12 @@ export function CourseListWithBulkActions({ courses }: { courses: CourseRow[] })
               />
               <div className="flex flex-col gap-1">
                 <span className="font-serif text-ink">{course.title}</span>
+                {course.aiSummary && (
+                  <span className="max-w-2xl text-sm text-ink-muted">
+                    {course.aiSummary}
+                    {course.durationSeconds ? ` · ${Math.round(course.durationSeconds / 60)} min` : ""}
+                  </span>
+                )}
                 <span className="flex flex-wrap gap-2 font-mono text-xs text-ink-muted">
                   <span>{course.slug}</span>
                   <span>· {course.platform}</span>

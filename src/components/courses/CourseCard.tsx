@@ -26,6 +26,9 @@ export function CourseCard({
       <h3 className="font-serif text-lg leading-snug text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
         {course.title}
       </h3>
+      {course.aiSummary && (
+        <p className="line-clamp-3 text-sm leading-relaxed text-ink-muted">{course.aiSummary}</p>
+      )}
       <div className="flex flex-col gap-0.5">
         {course.author && (
           <span className="font-mono text-[11px] text-ink-muted">{course.author}</span>

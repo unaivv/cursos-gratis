@@ -24,6 +24,8 @@ jobs:
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Optional: without it new videos skip the AI review and summary.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: npx tsx scripts/sync-youtube.ts
         # Writes land as status: pending — review happens in the admin
         # panel, not as a PR (spec: content-ingestion — "YouTube sync

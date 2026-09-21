@@ -5,6 +5,8 @@ import { getCoursesByCategory, readCategories } from "@/lib/courses/read";
 import { CATEGORY_ICON } from "@/lib/courses/category-icons";
 import { filterCourses } from "@/lib/courses/filters";
 import { getParamValues, clearParamsHref } from "@/lib/courses/query-params";
+import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
+import { guideForCategory } from "@/lib/editorial/guides";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { FilterPills } from "@/components/courses/FilterPills";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -52,6 +54,9 @@ export default async function CategoryPage({
   const categorySlugs = allInCategory.map((c) => c.slug);
   const selectedPlatforms = getParamValues(search, "platform");
   const courses = filterCourses(allInCategory, { categories: [], platforms: selectedPlatforms });
+
+  const editorial = CATEGORY_EDITORIAL[category.slug];
+  const guide = guideForCategory(category.slug);
 
   const platformCounts = { youtube: 0, udemy: 0 };
   for (const course of allInCategory) platformCounts[course.platform]++;
@@ -124,6 +129,14 @@ export default async function CategoryPage({
           {category.name}
         </h1>
 
+        {editorial && (
+          <div className="mb-10 flex max-w-2xl flex-col gap-4 text-ink-muted">
+            {editorial.intro.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        )}
+
         <div className="mb-6 flex items-baseline justify-between gap-4">
           <h2 className="font-serif text-2xl text-ink">Fichas verificadas</h2>
           <span className="font-mono text-xs text-ink-muted">
@@ -149,6 +162,38 @@ export default async function CategoryPage({
           </div>
         )}
       </section>
+
+      {(editorial || guide) && (
+        <section
+          aria-labelledby="how-to-learn"
+          className="mx-auto w-full max-w-5xl border-t border-rule px-6 py-12"
+        >
+          <div className="flex max-w-2xl flex-col gap-4">
+            <h2 id="how-to-learn" className="font-serif text-2xl text-ink">
+              Cómo sacarle partido a estos cursos
+            </h2>
+            {editorial && (
+              <ul className="flex list-disc flex-col gap-2 pl-5 text-ink-muted">
+                {editorial.tips.map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
+            )}
+            {guide && (
+              <p className="text-ink-muted">
+                Guía completa:{" "}
+                <Link
+                  href={`/guias/${guide.slug}`}
+                  className="text-ink underline underline-offset-4 hover:text-stamp-red"
+                >
+                  {guide.title}
+                </Link>
+                .
+              </p>
+            )}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

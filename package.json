@@ -9,6 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "sync:youtube": "tsx scripts/sync-youtube.ts",
+    "enrich:youtube": "tsx scripts/enrich-youtube.ts",
+    "ai:export": "tsx scripts/export-course-data.ts",
+    "ai:import": "tsx scripts/import-ai-content.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/seed-categories.ts && tsx scripts/migrate-courses.ts"
@@ -25,6 +28,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/react": "^19",

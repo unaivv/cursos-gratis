@@ -24,13 +24,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { sql } from "drizzle-orm";
 import { db } from "../src/lib/db/client";
-import { courses as coursesTable, type NewCourseRow } from "../src/lib/db/schema";
+import { courses as coursesTable } from "../src/lib/db/schema";
 import { toCourseRecord } from "../src/lib/courses/read";
 import { courseRecordSchema, type CourseRecord } from "../src/lib/courses/schema";
-import { escapeHtml, sendAdminNotification } from "../src/lib/email/send";
+import { sendAdminNotification } from "../src/lib/email/send";
 import { buildCourseSlug, QuotaExceededError } from "./sync-youtube";
+import { intakeDigestHtml, intakeNewVideos } from "./intake-youtube";
 
 const CONTENT_ROOT = path.join(process.cwd(), "content");
 const TERMS_PATH = path.join(CONTENT_ROOT, "sources", "youtube-search-terms.json");
@@ -117,47 +117,23 @@ async function main() {
     }
   }
 
-  for (const record of discovered) {
-    const row: NewCourseRow = {
-      slug: record.slug,
-      title: record.title,
-      author: record.author ?? null,
-      platform: record.platform,
-      category: record.category,
-      sourceUrl: record.sourceUrl,
-      freeStatus: record.freeStatus,
-      status: "pending",
-      lastVerifiedAt: record.lastVerifiedAt,
-      youtubeVideoId: record.youtube?.videoId ?? null,
-      youtubeChannelId: record.youtube?.channelId ?? null,
-    };
-    await db
-      .insert(coursesTable)
-      .values(row)
-      .onConflictDoUpdate({
-        target: coursesTable.slug,
-        set: { updatedAt: sql`now()` },
-      });
-  }
+  // Search results are noisier than curated channels: same AI intake review
+  // as the channel sync (length prefilter, is-it-a-course check, summary).
+  const intake = await intakeNewVideos(discovered, apiKey);
+  console.log(
+    `Discovery searched ${terms.length} term(s), found ${discovered.length} new video(s): ` +
+      `${intake.approved.length} approved (pending), ${intake.rejected.length} rejected, ${intake.skipped.length} to retry.`
+  );
 
-  console.log(`Discovery searched ${terms.length} term(s), found ${discovered.length} new video(s).`);
-
-  if (discovered.length > 0) {
-    const itemsHtml = discovered
-      .map(
-        (r) =>
-          `<li><a href="${escapeHtml(r.sourceUrl)}">${escapeHtml(r.title)}</a> — ${escapeHtml(r.author ?? "")} · ${escapeHtml(r.category)}</li>`
-      )
-      .join("");
+  if (intake.approved.length > 0 || intake.rejected.length > 0) {
     await sendAdminNotification(
-      `${discovered.length} curso(s) nuevo(s) descubiertos (búsqueda) — pendientes de revisión`,
-      `
-        <p>La búsqueda semanal (fuera de los canales curados) encontró ${discovered.length}
-        vídeo(s) nuevo(s) que parecen cursos completos, guardados como <strong>pendiente</strong>.
-        Revísalos con más cuidado que los de canales curados — la búsqueda es más ruidosa —
-        desde <a href="https://cursos.unaividal.com/admin">/admin</a>.</p>
-        <ul>${itemsHtml}</ul>
-      `
+      `${intake.approved.length} curso(s) nuevo(s) descubiertos (búsqueda) listos para aprobar`,
+      intakeDigestHtml(
+        intake,
+        `La búsqueda semanal (fuera de los canales curados) encontró ${discovered.length} vídeo(s) nuevo(s).
+        Los aprobados por la IA quedan como <strong>pendiente</strong>, con resumen. La búsqueda es más
+        ruidosa que los canales curados: revísalos con cuidado.`
+      )
     );
   }
 }

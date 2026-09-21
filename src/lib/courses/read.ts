@@ -33,6 +33,16 @@ export function toCourseRecord(row: CourseRow): CourseRecord {
     freeStatus: row.freeStatus,
     status: row.status,
     lastVerifiedAt: row.lastVerifiedAt,
+    editorNote: row.editorNote ?? undefined,
+    description: row.description ?? undefined,
+    durationSeconds: row.durationSeconds ?? undefined,
+    lessonCount: row.lessonCount ?? undefined,
+    chapters: row.chapters?.length ? row.chapters : undefined,
+    publishedAt: row.publishedAt ?? undefined,
+    aiSummary: row.aiSummary ?? undefined,
+    aiOverview: row.aiOverview ?? undefined,
+    aiHighlights: row.aiHighlights?.length ? row.aiHighlights : undefined,
+    aiLevel: row.aiLevel ?? undefined,
     youtube:
       (row.youtubeVideoId || row.youtubePlaylistId) && row.youtubeChannelId
         ? {

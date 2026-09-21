@@ -27,6 +27,22 @@ export const courseRecordSchema = z
     freeStatus: z.literal("free"),
     status: z.enum(["pending", "published"]).default("pending"),
     lastVerifiedAt: z.string().date(),
+    // Original commentary by the site owner (admin-only field).
+    editorNote: z.string().min(1).optional(),
+    // Enrichment from the YouTube API (scripts/enrich-youtube.ts).
+    description: z.string().min(1).optional(),
+    durationSeconds: z.number().int().positive().optional(),
+    lessonCount: z.number().int().positive().optional(),
+    chapters: z
+      .array(z.object({ title: z.string().min(1), start: z.number().int().nonnegative().optional() }))
+      .optional(),
+    publishedAt: z.string().date().optional(),
+    // AI-written content (scripts/import-ai-content.ts), grounded in the
+    // fields above.
+    aiSummary: z.string().min(1).optional(),
+    aiOverview: z.string().min(1).optional(),
+    aiHighlights: z.array(z.string().min(1)).optional(),
+    aiLevel: z.enum(["principiante", "intermedio", "avanzado"]).optional(),
     // Exactly one of videoId/playlistId — a single long-form video
     // (freeCodeCamp-style), or a playlist-shaped course (e.g. midudev's
     // live-stream-collection courses, which don't exist as one video).

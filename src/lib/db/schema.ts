@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, date, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 
 /**
  * Course catalog table. Replaces `content/courses/**\/*.json`.
@@ -31,12 +31,48 @@ export const courses = pgTable("courses", {
   youtubeVideoId: text("youtube_video_id"),
   youtubePlaylistId: text("youtube_playlist_id"),
   youtubeChannelId: text("youtube_channel_id"),
+  // Original commentary written by the site owner (admin form) — the one
+  // piece of per-course content that isn't derived from the source platform.
+  editorNote: text("editor_note"),
+  // Enrichment from the YouTube Data API (scripts/enrich-youtube.ts).
+  // All nullable: Udemy blocks scraping, and older rows predate this.
+  description: text("description"),
+  durationSeconds: integer("duration_seconds"),
+  lessonCount: integer("lesson_count"),
+  // Syllabus: video chapters (with `start` seconds) or, for playlists,
+  // the lesson titles in order.
+  chapters: jsonb("chapters").$type<{ title: string; start?: number }[]>(),
+  publishedAt: date("published_at"),
+  enrichedAt: timestamp("enriched_at", { withTimezone: true }),
+  // AI-written, grounded in the enrichment data above (never in the title
+  // alone) and labeled as such on the page — see scripts/import-ai-content.ts.
+  aiSummary: text("ai_summary"),
+  aiOverview: text("ai_overview"),
+  aiHighlights: jsonb("ai_highlights").$type<string[]>(),
+  aiLevel: text("ai_level", { enum: ["principiante", "intermedio", "avanzado"] }),
+  aiGeneratedAt: timestamp("ai_generated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type CourseRow = typeof courses.$inferSelect;
 export type NewCourseRow = typeof courses.$inferInsert;
+
+/**
+ * YouTube videos the sync/discovery AI review decided are not real
+ * courses (news, opinion, podcasts, shorts…). Remembered so they aren't
+ * re-reviewed — and re-billed — on every weekly run. Not tied to the
+ * courses table on purpose: a rejected video never becomes a course row.
+ */
+export const rejectedVideos = pgTable("rejected_videos", {
+  videoId: text("video_id").primaryKey(),
+  title: text("title").notNull(),
+  reason: text("reason").notNull(),
+  source: text("source", { enum: ["prefilter", "ai"] }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type RejectedVideoRow = typeof rejectedVideos.$inferSelect;
 
 /**
  * Fixed MVP category taxonomy. Seeded from `content/categories.json`
