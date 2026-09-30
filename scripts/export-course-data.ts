@@ -4,15 +4,18 @@
  * have real enrichment data are exported — Udemy pages can't be
  * enriched, and a summary written from a title alone would be invented.
  *
+ * Prefer scripts/ai-backfill.ts, which runs the whole review
+ * automatically; this manual flow is for generating outside the repo.
+ *
  * Run: DATABASE_URL=... npx tsx scripts/export-course-data.ts <out.json> [--all]
- * By default only rows without AI content yet; --all re-exports everything.
+ * By default only rows without the editorial analysis yet; --all
+ * re-exports everything.
  */
 import { writeFileSync } from "node:fs";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { db } from "../src/lib/db/client";
 import { categories, courses } from "../src/lib/db/schema";
-
-const URL_PATTERN = /https?:\/\/\S+/g;
+import { buildReviewMessage, catalogFor, reviewInputFromRow } from "./ai-review";
 
 async function main() {
   const out = process.argv[2];
@@ -20,6 +23,7 @@ async function main() {
   const all = process.argv.includes("--all");
 
   const categoryNames = new Map((await db.select().from(categories)).map((c) => [c.slug, c.name]));
+  const published = await db.select().from(courses).where(eq(courses.status, "published"));
   const rows = await db
     .select()
     .from(courses)
@@ -28,23 +32,22 @@ async function main() {
         eq(courses.status, "published"),
         eq(courses.platform, "youtube"),
         isNotNull(courses.enrichedAt),
-        all ? undefined : isNull(courses.aiGeneratedAt)
+        all ? undefined : isNull(courses.aiAnalyzedAt)
       )
     );
 
-  const data = rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    author: row.author,
-    category: categoryNames.get(row.category) ?? row.category,
-    kind: row.youtubePlaylistId ? "lista de reproducción" : "vídeo",
-    durationMinutes: row.durationSeconds ? Math.round(row.durationSeconds / 60) : null,
-    lessonCount: row.lessonCount,
-    publishedYear: row.publishedAt ? row.publishedAt.slice(0, 4) : null,
-    // Untrusted text written by third parties — the prompt treats it as data.
-    chapters: (row.chapters ?? []).slice(0, 40).map((c) => c.title),
-    description: (row.description ?? "").replace(URL_PATTERN, "").replace(/\s+/g, " ").trim().slice(0, 1200),
-  }));
+  // Same input the automated review sees (scripts/ai-review.ts), so a
+  // manual generation can follow REVIEW_SYSTEM_PROMPT verbatim. Untrusted
+  // third-party text (description, chapters) stays inside `message`'s
+  // data markers.
+  const data = rows.map((row) => {
+    const input = reviewInputFromRow(
+      row,
+      categoryNames.get(row.category) ?? row.category,
+      catalogFor(row.category, published, row.slug)
+    );
+    return { id: row.id, slug: row.slug, message: buildReviewMessage(input) };
+  });
   writeFileSync(out, JSON.stringify(data, null, 1));
   console.log(`Exported ${data.length} course(s) to ${out}`);
 }

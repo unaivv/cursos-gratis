@@ -3,6 +3,7 @@ import type { CourseRecord } from "@/lib/courses/schema";
 import { catalogNumber } from "@/lib/courses/catalog-number";
 import { PlatformStamp } from "./PlatformStamp";
 import { VerifiedBadge } from "./VerifiedBadge";
+import { VerdictBadge } from "./VerdictBadge";
 
 export function CourseCard({
   course,
@@ -29,7 +30,8 @@ export function CourseCard({
       {course.aiSummary && (
         <p className="line-clamp-3 text-sm leading-relaxed text-ink-muted">{course.aiSummary}</p>
       )}
-      <div className="flex flex-col gap-0.5">
+      <div className="mt-auto flex flex-col gap-0.5">
+        {course.aiAnalysis && <VerdictBadge verdict={course.aiAnalysis.verdict} />}
         {course.author && (
           <span className="font-mono text-[11px] text-ink-muted">{course.author}</span>
         )}

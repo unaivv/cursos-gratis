@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { courseAnalysisSchema } from "./ai-analysis";
 
 /**
  * A course record. Storage: the `courses` table (src/lib/db/schema.ts) —
@@ -43,6 +44,8 @@ export const courseRecordSchema = z
     aiOverview: z.string().min(1).optional(),
     aiHighlights: z.array(z.string().min(1)).optional(),
     aiLevel: z.enum(["principiante", "intermedio", "avanzado"]).optional(),
+    // Rich editorial analysis (src/lib/courses/ai-analysis.ts).
+    aiAnalysis: courseAnalysisSchema.optional(),
     // Exactly one of videoId/playlistId — a single long-form video
     // (freeCodeCamp-style), or a playlist-shaped course (e.g. midudev's
     // live-stream-collection courses, which don't exist as one video).

@@ -6,7 +6,8 @@
  *   1. dropped if we already rejected it in an earlier run,
  *   2. looked up in the YouTube API (duration, chapters, description),
  *   3. rejected outright if it is too short to be a course,
- *   4. reviewed by Claude: is it a real course? if so, write the summary.
+ *   4. reviewed by Claude: is it a real course? if so, write the summary
+ *      and the full editorial analysis shown on the course page.
  *
  * Approved videos are inserted as `pending` WITH their AI summary, ready
  * to approve in /admin — nothing is ever auto-published. Rejected ones are
@@ -19,13 +20,22 @@
  * runs and the rest fall back to the old behaviour (pending, no summary),
  * with a loud warning — an unconfigured key must not silently lose videos.
  */
-import { inArray, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../src/lib/db/client";
 import { courses as coursesTable, rejectedVideos, type NewCourseRow } from "../src/lib/db/schema";
 import { escapeHtml } from "../src/lib/email/send";
 import type { CourseRecord } from "../src/lib/courses/schema";
 import { parseChapters } from "../src/lib/courses/youtube-meta";
-import { createReviewer, prefilterReason, reviewBackend, type ReviewDecision, type ReviewInput } from "./ai-review";
+import {
+  catalogFor,
+  chapterLines,
+  cleanDescription,
+  createReviewer,
+  prefilterReason,
+  reviewBackend,
+  type ReviewDecision,
+  type ReviewInput,
+} from "./ai-review";
 import { fetchVideos, videoEnrichmentFields, type VideoItem } from "./enrich-youtube";
 
 export type Reviewer = (input: ReviewInput) => Promise<ReviewDecision>;
@@ -53,7 +63,9 @@ export type IntakeResult = {
  */
 export async function decideIntake(
   candidates: { record: CourseRecord; video: VideoItem | undefined }[],
-  reviewer: Reviewer | "unconfigured" | "unavailable"
+  reviewer: Reviewer | "unconfigured" | "unavailable",
+  /** Published courses the analysis may suggest as before/after/alternative. */
+  catalog: { slug: string; title: string; category: string; aiLevel?: string | null }[] = []
 ): Promise<IntakeResult> {
   const result: IntakeResult = {
     approved: [],
@@ -93,9 +105,11 @@ export async function decideIntake(
         category: record.category,
         kind: "vídeo",
         durationSeconds: fields.durationSeconds,
+        lessonCount: fields.lessonCount,
         publishedYear: fields.publishedAt ? fields.publishedAt.slice(0, 4) : null,
-        chapters: parseChapters(video.snippet.description ?? "").map((c) => c.title),
-        description: (video.snippet.description ?? "").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim(),
+        chapters: chapterLines(parseChapters(video.snippet.description ?? "")),
+        description: cleanDescription(video.snippet.description),
+        catalog: catalogFor(record.category, catalog, record.slug),
       });
       if (decision.isCourse) result.approved.push({ record, video, decision });
       else result.rejected.push({ videoId, title: record.title, reason: decision.reason, source: "ai" });
@@ -143,9 +157,15 @@ export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: st
     }
   }
 
+  const catalog = await db
+    .select({ slug: coursesTable.slug, title: coursesTable.title, category: coursesTable.category, aiLevel: coursesTable.aiLevel })
+    .from(coursesTable)
+    .where(eq(coursesTable.status, "published"));
+
   const result = await decideIntake(
     fresh.map((record) => ({ record, video: videos.get(record.youtube!.videoId!) })),
-    reviewer
+    reviewer,
+    catalog
   );
 
   for (const { record, video, decision } of result.approved) {
@@ -168,6 +188,8 @@ export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: st
         aiHighlights: decision.content.highlights,
         aiLevel: decision.content.level,
         aiGeneratedAt: new Date(),
+        aiAnalysis: decision.content.analysis,
+        aiAnalyzedAt: new Date(),
       }),
     };
     await db

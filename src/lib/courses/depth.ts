@@ -1,17 +1,21 @@
 import type { CourseRecord } from "./schema";
 
 /**
- * A course page is "thin" when it has nothing beyond what the source
- * platform already shows: no syllabus, no author excerpt, no editor
- * note, no duration. Thin pages stay reachable but are kept out of the
- * index and the sitemap — a catalog of hundreds of near-identical pages
- * is what search engines and AdSense read as low-value content.
+ * A hand-written editor note only counts as editorial content on its
+ * own when it's a real paragraph or two, not a one-line remark.
  */
-export function isThinCourse(course: CourseRecord): boolean {
-  return (
-    !course.editorNote &&
-    !course.chapters?.length &&
-    !course.description &&
-    !course.durationSeconds
-  );
+export const MIN_EDITOR_NOTE_CHARS = 300;
+
+/**
+ * Whether a course page carries enough original editorial value to be
+ * indexed: the rich analysis (src/lib/courses/ai-analysis.ts) or a
+ * substantial hand-written editor note. Everything else — a ficha with
+ * only the title, the source description and a short summary — stays
+ * reachable for visitors but is `noindex, follow` and out of the
+ * sitemap, so search engines (and AdSense) judge the site by its best
+ * pages. A page becomes indexable on its own as soon as it's analyzed.
+ */
+export function isIndexableCourse(course: CourseRecord): boolean {
+  if (course.aiAnalysis) return true;
+  return (course.editorNote?.trim().length ?? 0) >= MIN_EDITOR_NOTE_CHARS;
 }

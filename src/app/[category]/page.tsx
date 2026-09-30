@@ -6,7 +6,8 @@ import { CATEGORY_ICON } from "@/lib/courses/category-icons";
 import { filterCourses } from "@/lib/courses/filters";
 import { getParamValues, clearParamsHref } from "@/lib/courses/query-params";
 import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
-import { guideForCategory } from "@/lib/editorial/guides";
+import { GUIDE_KIND_LABEL, guidesForCategory } from "@/lib/editorial/guides";
+import { recommendationRank } from "@/lib/courses/ai-analysis";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { FilterPills } from "@/components/courses/FilterPills";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -28,11 +29,15 @@ export async function generateMetadata({
   const { category: categorySlug } = await params;
   const category = await findCategory(categorySlug);
   if (!category) return {};
-  const title = `Cursos gratis de ${category.name}, verificados`;
-  const description = `Cursos gratuitos de ${category.name} en YouTube y Udemy, verificados a mano — con la fecha de cada comprobación.`;
+  const title = `Cursos gratis de ${category.name}: rutas, análisis y selección verificada`;
+  const tagline = CATEGORY_EDITORIAL[category.slug]?.tagline;
+  const description = `Cursos gratuitos de ${category.name} en YouTube y Udemy, analizados y verificados a mano${
+    tagline ? `: ${tagline.charAt(0).toLowerCase()}${tagline.slice(1)}` : "."
+  }`;
   return {
     title,
     description,
+    alternates: { canonical: `/${category.slug}` },
     openGraph: { title, description },
     twitter: { title, description },
   };
@@ -56,7 +61,13 @@ export default async function CategoryPage({
   const courses = filterCourses(allInCategory, { categories: [], platforms: selectedPlatforms });
 
   const editorial = CATEGORY_EDITORIAL[category.slug];
-  const guide = guideForCategory(category.slug);
+  const guides = guidesForCategory(category.slug);
+  const topCourses = allInCategory
+    .filter((course) => course.aiAnalysis)
+    .sort((a, b) => recommendationRank(b.aiAnalysis) - recommendationRank(a.aiAnalysis))
+    .slice(0, 3);
+  // Best-rated first, then the rest in catalog order.
+  const sortedCourses = [...courses].sort((a, b) => recommendationRank(b.aiAnalysis) - recommendationRank(a.aiAnalysis));
 
   const platformCounts = { youtube: 0, udemy: 0 };
   for (const course of allInCategory) platformCounts[course.platform]++;
@@ -137,8 +148,57 @@ export default async function CategoryPage({
           </div>
         )}
 
+        {guides.length > 0 && (
+          <section aria-labelledby="category-guides" className="mb-12 flex flex-col gap-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 id="category-guides" className="font-serif text-2xl text-ink">
+                Rutas y guías de {category.name}
+              </h2>
+              <Link href="/guias" className="shrink-0 text-sm text-ink-muted underline underline-offset-4 hover:text-ink">
+                Todas las guías →
+              </Link>
+            </div>
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {guides.slice(0, 3).map((g) => (
+                <li key={g.slug}>
+                  <Link
+                    href={`/guias/${g.slug}`}
+                    className="group flex h-full flex-col gap-2 border border-rule bg-card p-5 transition-colors hover:border-ink"
+                  >
+                    <span className="font-mono text-[11px] text-stamp-red">{GUIDE_KIND_LABEL[g.kind]}</span>
+                    <span className="font-serif text-lg leading-snug text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
+                      {g.title}
+                    </span>
+                    <span className="text-sm text-ink-muted">{g.description}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {topCourses.length > 0 && selectedPlatforms.length === 0 && (
+          <section aria-labelledby="top-courses" className="mb-12 flex flex-col gap-4">
+            <h2 id="top-courses" className="font-serif text-2xl text-ink">
+              Los más recomendados
+            </h2>
+            <p className="max-w-2xl text-sm text-ink-muted">
+              Según nuestro análisis editorial de cada curso: estructura, profundidad para su duración y actualidad.{" "}
+              <Link href="/como-verificamos#analisis" className="text-ink underline underline-offset-4 hover:text-stamp-red">
+                Cómo lo hacemos
+              </Link>
+              .
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {topCourses.map((course) => (
+                <CourseCard key={`top-${course.slug}`} course={course} categorySlugs={categorySlugs} />
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="mb-6 flex items-baseline justify-between gap-4">
-          <h2 className="font-serif text-2xl text-ink">Fichas verificadas</h2>
+          <h2 className="font-serif text-2xl text-ink">Todas las fichas</h2>
           <span className="font-mono text-xs text-ink-muted">
             {courses.length} ficha{courses.length === 1 ? "" : "s"}
           </span>
@@ -152,7 +212,7 @@ export default async function CategoryPage({
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
+            {sortedCourses.map((course) => (
               <CourseCard
                 key={`${course.platform}-${course.slug}`}
                 course={course}
@@ -163,7 +223,7 @@ export default async function CategoryPage({
         )}
       </section>
 
-      {(editorial || guide) && (
+      {editorial && (
         <section
           aria-labelledby="how-to-learn"
           className="mx-auto w-full max-w-5xl border-t border-rule px-6 py-12"
@@ -172,25 +232,25 @@ export default async function CategoryPage({
             <h2 id="how-to-learn" className="font-serif text-2xl text-ink">
               Cómo sacarle partido a estos cursos
             </h2>
-            {editorial && (
-              <ul className="flex list-disc flex-col gap-2 pl-5 text-ink-muted">
-                {editorial.tips.map((tip) => (
-                  <li key={tip}>{tip}</li>
-                ))}
-              </ul>
-            )}
-            {guide && (
-              <p className="text-ink-muted">
-                Guía completa:{" "}
-                <Link
-                  href={`/guias/${guide.slug}`}
-                  className="text-ink underline underline-offset-4 hover:text-stamp-red"
-                >
-                  {guide.title}
-                </Link>
-                .
-              </p>
-            )}
+            <ul className="flex list-disc flex-col gap-2 pl-5 text-ink-muted">
+              {editorial.tips.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
+            </ul>
+            <p className="text-ink-muted">
+              Para cualquier curso de esta lista, estas guías te ayudan a llegar al final:{" "}
+              <Link
+                href="/guias/seguir-un-curso-de-youtube-hasta-el-final"
+                className="text-ink underline underline-offset-4 hover:text-stamp-red"
+              >
+                cómo seguir un curso de YouTube hasta el final
+              </Link>{" "}
+              y{" "}
+              <Link href="/guias/plan-de-estudio-semanal" className="text-ink underline underline-offset-4 hover:text-stamp-red">
+                cómo montar tu plan de estudio semanal
+              </Link>
+              .
+            </p>
           </div>
         </section>
       )}

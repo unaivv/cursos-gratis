@@ -11,8 +11,44 @@ import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { AdSlot } from "@/components/ads/AdSlot";
-import { GUIDES } from "@/lib/editorial/guides";
+import { VerdictBadge } from "@/components/courses/VerdictBadge";
+import { GUIDES, guidesByKind, readingMinutes } from "@/lib/editorial/guides";
+import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
+import { recommendationRank } from "@/lib/courses/ai-analysis";
+import type { CourseRecord } from "@/lib/courses/schema";
 import { SITE_URL } from "@/lib/site";
+
+/** Highest editorial verdicts, at most `perCategory` per category so one subject can't fill the block. */
+function mostRecommended(courses: CourseRecord[], limit: number, perCategory = 2): CourseRecord[] {
+  const perCategoryCount = new Map<string, number>();
+  const picked: CourseRecord[] = [];
+  const ranked = courses
+    .filter((course) => course.aiAnalysis)
+    .sort((a, b) => recommendationRank(b.aiAnalysis) - recommendationRank(a.aiAnalysis));
+  for (const course of ranked) {
+    const count = perCategoryCount.get(course.category) ?? 0;
+    if (count >= perCategory) continue;
+    perCategoryCount.set(course.category, count + 1);
+    picked.push(course);
+    if (picked.length === limit) break;
+  }
+  return picked;
+}
+
+const STEPS = [
+  {
+    title: "Seleccionamos",
+    text: "Cursos completos de canales y plataformas educativas. Cada vídeo nuevo pasa un filtro que descarta noticias, opiniones, clips y promociones antes de que una persona lo revise.",
+  },
+  {
+    title: "Comprobamos que es gratis",
+    text: "Cada ficha lleva la fecha en la que se verificó que el curso sigue siendo gratuito. Si deja de serlo, se retira del catálogo en lugar de quedarse con una etiqueta falsa.",
+  },
+  {
+    title: "Lo analizamos",
+    text: "Para quién es, qué necesitas saber antes, cómo está estructurado, puntos fuertes y débiles, un plan de estudio y un veredicto, siempre a partir de los datos publicados del curso.",
+  },
+];
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
 export const dynamic = "force-dynamic";
@@ -47,7 +83,17 @@ export default async function Home({
   // visitor asked to see everything via "Ver más cursos".
   const visibleCourses = showAll ? sorted : sorted.slice(0, 6);
 
-  const heroCourse = sorted[0];
+  const recommended = mostRecommended(courses, 6);
+  const heroCourse = recommended[0] ?? sorted[0];
+  const analyzedCount = courses.filter((course) => course.aiAnalysis).length;
+  const paths = guidesByKind("ruta");
+  const methodGuides = [...guidesByKind("metodo"), ...guidesByKind("eleccion")];
+  const categoryCounts = new Map<string, number>();
+  for (const course of courses) categoryCounts.set(course.category, (categoryCounts.get(course.category) ?? 0) + 1);
+  const categoryNames = new Map(categories.map((c) => [c.slug, c.name]));
+  const populatedCategories = categories
+    .filter((c) => (categoryCounts.get(c.slug) ?? 0) > 0)
+    .sort((a, b) => (categoryCounts.get(b.slug) ?? 0) - (categoryCounts.get(a.slug) ?? 0));
   const heroCategorySlugs = courses
     .filter((c) => c.category === heroCourse?.category)
     .map((c) => c.slug);
@@ -80,6 +126,9 @@ export default async function Home({
     "@type": ["WebSite", "CollectionPage"],
     name: "cursos.unaividal.com",
     url: SITE_URL,
+    inLanguage: "es",
+    description:
+      "Catálogo de cursos gratuitos de YouTube y Udemy analizados y verificados, con rutas de aprendizaje y guías de estudio.",
     publisher: {
       "@type": "Person",
       name: "Unai Vidal",
@@ -111,12 +160,12 @@ export default async function Home({
             Índice abierto, sin paywalls
           </div>
           <h1 className="font-serif text-4xl leading-[1.15] text-ink md:text-5xl">
-            Cursos gratis, catalogados por materia.
+            Cursos gratis, analizados y ordenados en rutas.
           </h1>
           <p className="max-w-md text-ink-muted">
-            YouTube y Udemy, sin cuentas ni pagos — cada ficha lleva a la
-            clase original, con la fecha en la que comprobamos que sigue
-            siendo gratis.
+            Elegimos cursos completos de YouTube y Udemy, comprobamos que siguen siendo gratis y
+            te contamos para quién es cada uno, qué aprenderás y cómo seguirlo hasta el final. Con
+            rutas de aprendizaje para saber por dónde empezar.
           </p>
           <div className="max-w-md">
             <form action="/buscar" method="get" className="flex gap-2">
@@ -146,6 +195,18 @@ export default async function Home({
               ))}
             </div>
           </div>
+          <dl className="grid max-w-md grid-cols-3 gap-4 border-t border-rule pt-4">
+            {[
+              { value: courses.length, label: "cursos verificados" },
+              { value: analyzedCount, label: "con análisis editorial" },
+              { value: GUIDES.length, label: "guías y rutas" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col-reverse">
+                <dt className="font-mono text-[11px] text-ink-muted">{stat.label}</dt>
+                <dd className="font-serif text-2xl text-ink">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
         {heroCourse && (
@@ -160,9 +221,13 @@ export default async function Home({
                 </span>
                 <PlatformStamp platform={heroCourse.platform} size="sm" />
               </div>
-              <p className="font-serif text-lg italic leading-snug text-ink">
+              <Link
+                href={`/${heroCourse.category}/${heroCourse.slug}`}
+                className="font-serif text-lg italic leading-snug text-ink hover:underline hover:decoration-rule hover:underline-offset-4"
+              >
                 {heroCourse.title}
-              </p>
+              </Link>
+              {heroCourse.aiAnalysis && <VerdictBadge verdict={heroCourse.aiAnalysis.verdict} />}
               <span className="font-mono text-[11px]">
                 <VerifiedBadge date={heroCourse.lastVerifiedAt} />
               </span>
@@ -174,6 +239,134 @@ export default async function Home({
       <div className="mx-auto w-full max-w-5xl px-6">
         <AdSlot slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} />
       </div>
+
+      {!showAll && (
+        <>
+          <section aria-labelledby="paths-heading" className="mx-auto w-full max-w-5xl px-6 py-12">
+            <div className="mb-2 flex items-baseline justify-between gap-4">
+              <h2 id="paths-heading" className="font-serif text-2xl text-ink">
+                Rutas de aprendizaje
+              </h2>
+              <Link href="/guias#rutas" className="shrink-0 text-sm text-ink-muted underline underline-offset-4 hover:text-ink">
+                Todas las rutas ({paths.length}) →
+              </Link>
+            </div>
+            <p className="mb-6 max-w-2xl text-ink-muted">
+              ¿No sabes por dónde empezar? Cada ruta ordena una materia por etapas, con cuánto tiempo
+              dedicar, qué practicar y los cursos del catálogo que encajan en cada paso.
+            </p>
+            <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {paths.slice(0, 8).map((guide, index) => {
+                const Icon = guide.categorySlug ? CATEGORY_ICON[guide.categorySlug] : undefined;
+                return (
+                  <li key={guide.slug}>
+                    <Link
+                      href={`/guias/${guide.slug}`}
+                      className="group flex h-full flex-col gap-3 border border-rule bg-card p-5 transition-colors hover:border-ink"
+                    >
+                      <span className="flex items-center justify-between font-mono text-[11px] text-ink-muted">
+                        <span>Ruta {String(index + 1).padStart(2, "0")}</span>
+                        {Icon && <Icon size={16} strokeWidth={1.5} aria-hidden="true" />}
+                      </span>
+                      <span className="font-serif text-lg leading-snug text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
+                        {guide.title}
+                      </span>
+                      <span className="mt-auto font-mono text-[11px] text-ink-muted">
+                        {guide.categorySlug ? categoryNames.get(guide.categorySlug) ?? "" : ""} · {readingMinutes(guide)} min
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+
+          {recommended.length > 0 && (
+            <section aria-labelledby="recommended-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
+              <div className="mb-2 flex items-baseline justify-between gap-4">
+                <h2 id="recommended-heading" className="font-serif text-2xl text-ink">
+                  Los más recomendados
+                </h2>
+                <Link href="/como-verificamos#analisis" className="shrink-0 text-sm text-ink-muted underline underline-offset-4 hover:text-ink">
+                  Cómo los valoramos →
+                </Link>
+              </div>
+              <p className="mb-6 max-w-2xl text-ink-muted">
+                Los cursos mejor valorados en nuestro análisis editorial: completos, bien estructurados
+                y actuales para su tema. Cada ficha explica por qué.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {recommended.map((course) => (
+                  <CourseCard
+                    key={`rec-${course.slug}`}
+                    course={course}
+                    categorySlugs={slugsByCategory.get(course.category) ?? []}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section aria-labelledby="categories-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
+            <h2 id="categories-heading" className="mb-6 font-serif text-2xl text-ink">
+              Explora por materia
+            </h2>
+            <ul className="grid grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
+              {populatedCategories.map((category) => {
+                const Icon = CATEGORY_ICON[category.slug];
+                const count = categoryCounts.get(category.slug) ?? 0;
+                return (
+                  <li key={category.slug} className="bg-card">
+                    <Link href={`/${category.slug}`} className="group flex h-full gap-4 p-5 hover:bg-paper">
+                      {Icon && <Icon size={22} strokeWidth={1.5} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-muted" />}
+                      <span className="flex flex-col gap-1">
+                        <span className="flex items-baseline gap-2">
+                          <span className="font-serif text-lg text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
+                            {category.name}
+                          </span>
+                          <span className="font-mono text-[11px] text-ink-muted">
+                            {count} curso{count === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                        {CATEGORY_EDITORIAL[category.slug] && (
+                          <span className="text-sm text-ink-muted">{CATEGORY_EDITORIAL[category.slug].tagline}</span>
+                        )}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <section aria-labelledby="method-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
+            <div className="mb-2 flex items-baseline justify-between gap-4">
+              <h2 id="method-heading" className="font-serif text-2xl text-ink">
+                Aprende a aprender
+              </h2>
+              <Link href="/guias#metodo" className="shrink-0 text-sm text-ink-muted underline underline-offset-4 hover:text-ink">
+                Todas las guías →
+              </Link>
+            </div>
+            <p className="mb-6 max-w-2xl text-ink-muted">
+              Un curso gratis no tiene profesor ni fechas: estas guías ponen la estructura que falta,
+              desde elegir bien hasta demostrar lo aprendido.
+            </p>
+            <ul className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+              {methodGuides.slice(0, 8).map((guide) => (
+                <li key={guide.slug} className="border-b border-rule pb-4">
+                  <Link href={`/guias/${guide.slug}`} className="group flex flex-col gap-1">
+                    <span className="font-serif text-lg leading-snug text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
+                      {guide.title}
+                    </span>
+                    <span className="text-sm text-ink-muted">{guide.description}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      )}
 
       <section
         aria-labelledby="filters-heading"
@@ -219,7 +412,7 @@ export default async function Home({
       <section aria-labelledby="latest-heading" className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
         <div className="mb-6 flex items-baseline justify-between gap-4">
           <h2 id="latest-heading" className="font-serif text-2xl text-ink">
-            {hasFilters ? "Resultados" : "Fichas recientes"}
+            {hasFilters ? "Resultados" : showAll ? "Todas las fichas" : "Añadidos recientemente"}
           </h2>
           <span className="font-mono text-xs text-ink-muted">
             {visibleCourses.length} ficha{visibleCourses.length === 1 ? "" : "s"}
@@ -252,55 +445,31 @@ export default async function Home({
         )}
       </section>
 
-      <section aria-labelledby="guides-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
-        <div className="mb-6 flex items-baseline justify-between gap-4">
-          <h2 id="guides-heading" className="font-serif text-2xl text-ink">
-            Guías para empezar
-          </h2>
-          <Link href="/guias" className="text-sm text-ink-muted underline underline-offset-4 hover:text-ink">
-            Todas las guías →
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {GUIDES.slice(0, 3).map((guide) => (
-            <Link
-              key={guide.slug}
-              href={`/guias/${guide.slug}`}
-              className="group flex flex-col gap-2 border border-rule bg-card p-5 transition-colors hover:border-ink"
-            >
-              <h3 className="font-serif text-lg leading-snug text-ink group-hover:underline group-hover:decoration-rule group-hover:underline-offset-4">
-                {guide.title}
-              </h3>
-              <p className="text-sm text-ink-muted">{guide.description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-5xl px-6 pb-16">
-        <div className="grid grid-cols-1 gap-6 border border-rule bg-card p-8 md:grid-cols-[1fr_2fr]">
-          <div className="flex flex-col gap-1 border-b border-rule pb-4 md:border-b-0 md:border-r md:pb-0 md:pr-6">
+      <section aria-labelledby="how-heading" className="mx-auto w-full max-w-5xl px-6 pb-16">
+        <div className="flex flex-col gap-6 border border-rule bg-card p-8">
+          <div className="flex flex-col gap-1">
             <span className="text-sm text-stamp-red">Metodología y transparencia</span>
-            <h2 className="font-serif text-xl text-ink">Cómo verificamos los cursos</h2>
+            <h2 id="how-heading" className="font-serif text-2xl text-ink">
+              Cómo elegimos, verificamos y analizamos
+            </h2>
           </div>
-          <div className="flex flex-col gap-3 text-ink-muted">
-            <p>
-              <strong className="font-medium text-ink">
-                cursos.unaividal.com — enlazamos a YouTube y Udemy, no alojamos contenido.
-              </strong>
-            </p>
-            <p>
-              Cada ficha muestra la fecha exacta en que se comprobó a mano que el curso seguía
-              siendo gratis. Un curso que deja de serlo se retira del catálogo en vez de quedar
-              publicado con una etiqueta desactualizada.
-            </p>
-            <Link
-              href="/como-verificamos"
-              className="w-fit text-sm text-ink underline underline-offset-4 hover:text-stamp-red"
-            >
-              Leer la guía completa del proceso →
+          <ol className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <li key={step.title} className="flex flex-col gap-2">
+                <span className="font-mono text-sm text-stamp-red">{String(index + 1).padStart(2, "0")}</span>
+                <h3 className="font-serif text-lg text-ink">{step.title}</h3>
+                <p className="text-sm text-ink-muted">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="text-sm text-ink-muted">
+            <strong className="font-medium text-ink">
+              Enlazamos a YouTube y Udemy, no alojamos contenido ni cobramos comisión.
+            </strong>{" "}
+            <Link href="/como-verificamos" className="text-ink underline underline-offset-4 hover:text-stamp-red">
+              Leer el proceso completo →
             </Link>
-          </div>
+          </p>
         </div>
       </section>
     </main>

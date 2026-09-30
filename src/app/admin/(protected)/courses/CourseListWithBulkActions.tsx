@@ -123,6 +123,10 @@ export function CourseListWithBulkActions({ courses }: { courses: CourseRow[] })
                   >
                     · {course.status === "published" ? "publicado" : "pendiente"}
                   </span>
+                  {/* Without the analysis the public page is noindex (lib/courses/depth.ts). */}
+                  <span className={course.aiAnalysis ? "text-ink-muted" : "text-stamp-red"}>
+                    · {course.aiAnalysis ? `análisis ${course.aiAnalysis.verdict.score}/5` : "sin análisis"}
+                  </span>
                   {isStaleUdemy(course) && (
                     <span className="text-stamp-red">
                       · sin re-verificar desde {course.lastVerifiedAt}

@@ -2,6 +2,7 @@ import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { courses as coursesTable, categories as categoriesTable, type CourseRow } from "@/lib/db/schema";
 import type { Category, CourseRecord } from "./schema";
+import { parseAnalysis } from "./ai-analysis";
 
 /**
  * Public reads — courses table, `published` only.
@@ -43,6 +44,7 @@ export function toCourseRecord(row: CourseRow): CourseRecord {
     aiOverview: row.aiOverview ?? undefined,
     aiHighlights: row.aiHighlights?.length ? row.aiHighlights : undefined,
     aiLevel: row.aiLevel ?? undefined,
+    aiAnalysis: parseAnalysis(row.aiAnalysis) ?? undefined,
     youtube:
       (row.youtubeVideoId || row.youtubePlaylistId) && row.youtubeChannelId
         ? {

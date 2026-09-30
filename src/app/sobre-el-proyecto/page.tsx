@@ -63,8 +63,9 @@ export default function AboutPage() {
         <ul className="flex list-disc flex-col gap-2 pl-5 text-ink-muted">
           <li>
             <strong className="font-medium text-ink">Fichas de curso</strong> con los datos que
-            podemos comprobar: autor, duración, capítulos o lecciones y, cuando la hay, una nota
-            editorial propia.
+            podemos comprobar (autor, duración, capítulos o lecciones) y un análisis editorial:
+            para quién es, requisitos, qué aprenderás, estructura, puntos fuertes y débiles, plan
+            de estudio y un veredicto.
           </li>
           <li>
             <strong className="font-medium text-ink">Páginas por categoría</strong> con una
@@ -74,7 +75,9 @@ export default function AboutPage() {
             <Link href="/guias" className="text-ink underline underline-offset-4 hover:text-stamp-red">
               Guías
             </Link>{" "}
-            con hojas de ruta para empezar desde cero en programación, datos, diseño o idiomas.
+            con rutas de aprendizaje por materia (desarrollo web, datos, diseño, marketing,
+            idiomas, CAD, música…) y métodos para estudiar mejor: seguir un curso hasta el final,
+            tomar apuntes, planificar la semana o demostrar lo aprendido sin certificado.
           </li>
         </ul>
       </section>

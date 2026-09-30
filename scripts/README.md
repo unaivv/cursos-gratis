@@ -77,7 +77,10 @@ through `intake-youtube.ts` instead of dumping it in the admin queue:
 1. Already rejected in a previous run (`rejected_videos` table)? Dropped.
 2. Shorter than 10 minutes? Rejected without an API call.
 3. Claude decides "is this a real course?" and, if so, writes the summary,
-   overview, highlights and level (grounded only in the video's own data).
+   overview, highlights, level **and the editorial analysis** shown on the
+   course page (audience, prerequisites, outcomes, structure, strengths and
+   caveats, study plan, tips, before/after courses from our own catalog,
+   verdict with a 1-5 score, FAQ) — grounded only in the video's own data.
 4. Approved → inserted as **pending with its summary**, ready to approve in
    `/admin` (never auto-published). Rejected → remembered, and listed with
    the reason in the digest email so a wrongly discarded one can be rescued.
@@ -122,23 +125,62 @@ DATABASE_URL=... YOUTUBE_API_KEY=... npx tsx scripts/enrich-youtube.ts --force  
 Udemy courses can't be enriched (scraping is blocked) — those pages rely
 on the per-course "nota editorial" field in the admin panel.
 
-## `export-course-data.ts` / `import-ai-content.ts` — AI summaries
+## `ai-backfill.ts` — editorial analysis for the existing catalog
 
-Two-step flow for the AI-written summary shown on listing cards and the
-"De qué trata" section of each course page. Generation happens outside the
-repo (no API key needed here): export the grounded data, have Claude write
-`{id, summary, overview, highlights, level}` per course from *only* that
-data, then import.
+The course page only becomes **indexable** (no `noindex`, listed in the
+sitemap) once it has the editorial analysis (`ai_analysis` column) or a
+hand-written editor note of 300+ characters — see
+`src/lib/courses/depth.ts`. New videos get the analysis at intake; this
+script runs the same review over courses that are already published.
 
 ```bash
-DATABASE_URL=... npx tsx scripts/export-course-data.ts /tmp/in.json      # only rows without AI content yet
-# ...generate /tmp/out.json (array of aiContentSchema objects)...
+# on the raspi cron clone (has CLAUDE_CODE_OAUTH_TOKEN + DATABASE_URL in its .env):
+npm run ai:backfill -- --limit 5 --dry-run   # review 5, print JSON, write nothing — spot-check quality first
+npm run ai:backfill -- --limit 40            # a batch; re-run until "0 course(s) to analyze"
+npm run ai:backfill                          # or everything pending in one go
+```
+
+Options: `--force` (re-analyze even current ones), `--limit N`,
+`--category SLUG`, `--slug SLUG` (repeatable), `--include-pending`,
+`--dry-run`, `--delay-ms N` (default 1500).
+
+- **Idempotent and resumable:** skips courses whose analysis is already at
+  `ANALYSIS_VERSION` (`src/lib/courses/ai-analysis.ts`; bump it to
+  regenerate everything after a prompt change). Each result is written as
+  soon as it arrives, so an interrupted run just continues next time. Stops
+  after 3 consecutive failures (rate limit, expired token) — re-run later.
+- **Grounded:** courses with no chapters and no meaningful description
+  (Udemy, un-enriched rows) are listed and skipped, never analyzed from a
+  bare title. Give them an editor note in `/admin`, or run
+  `enrich-youtube.ts` first for YouTube rows.
+- **Never unpublishes:** a course the review flags as "not a course" is
+  only reported; decide in `/admin`.
+- Same backends as the intake (`cli` via `CLAUDE_CODE_OAUTH_TOKEN`, or
+  `api`). Locally, with a logged-in Claude Code CLI and no token:
+  `AI_REVIEW_BACKEND=cli DATABASE_URL=... npm run ai:backfill`.
+- Rewrites `ai_summary`/`ai_overview`/`ai_highlights`/`ai_level` too, so
+  listing text and analysis stay consistent. `/admin` shows
+  "análisis N/5" or "sin análisis" per course for spot checks.
+
+## `export-course-data.ts` / `import-ai-content.ts` — manual alternative
+
+Two-step flow for generating the same content outside the repo (prefer
+`ai-backfill.ts`, which does this automatically). The export writes
+`{id, slug, message}` per course, where `message` is exactly the prompt
+input the automated review sees; have Claude answer each with
+`REVIEW_SYSTEM_PROMPT` (`scripts/ai-review.ts`), convert to
+`{id, summary, overview, highlights, level, analysis}` (analysis per
+`courseAnalysisSchema`, with `version`), then import.
+
+```bash
+DATABASE_URL=... npx tsx scripts/export-course-data.ts /tmp/in.json      # only rows without the analysis yet
+# ...generate /tmp/out.json...
 DATABASE_URL=... npx tsx scripts/import-ai-content.ts /tmp/out.json      # validates, skips + reports bad rows
 ```
 
-Only enriched YouTube courses are exported: a summary written from a bare
-title (Udemy) would be invented. New videos from the weekly sync have no AI
-content until this flow is run again; their cards simply show no summary.
+Only enriched YouTube courses are exported: an analysis written from a
+bare title (Udemy) would be invented. `analysis` is optional in the import
+(older summary-only files still work, leaving any analysis untouched).
 
 ## `seed-categories.ts`, `seed-admin.ts`, `migrate-courses.ts`
 

@@ -6,12 +6,15 @@
  * entry simply renders no editorial block.
  */
 export type CategoryEditorial = {
+  /** One line for the home page category grid. */
+  tagline: string;
   intro: string[];
   tips: string[];
 };
 
 export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
   programming: {
+    tagline: "Lenguajes, desarrollo web, bases de datos y herramientas como Git.",
     intro: [
       "Programar es de las habilidades que más cómodamente se aprenden gratis: la documentación es abierta, las herramientas son gratuitas y hay decenas de cursos completos en YouTube y Udemy. La dificultad no es encontrar material, sino elegir un camino y no saltar de uno a otro cada semana.",
       "Aquí reunimos cursos de lenguajes (Python, JavaScript, Java y más), desarrollo web, bases de datos y herramientas como Git. Casi todos son cursos largos en vídeo: sirven para arrancar y entender los fundamentos, y funcionan mejor cuando se acompañan de proyectos propios.",
@@ -24,6 +27,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   "data-ai": {
+    tagline: "Análisis de datos, SQL, estadística, machine learning e IA generativa.",
     intro: [
       "Datos e inteligencia artificial abarca desde analizar una hoja de cálculo hasta entrenar modelos de aprendizaje automático. Es un campo con mucha base matemática y estadística, pero la entrada práctica —manejar datos con Python o SQL, visualizarlos y sacar conclusiones— es accesible sin coste.",
       "En esta categoría encontrarás cursos de análisis de datos, estadística aplicada, aprendizaje automático e IA generativa. Conviene distinguir los cursos de fundamentos, que envejecen bien, de los de herramientas concretas de IA, que cambian en meses.",
@@ -36,6 +40,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   design: {
+    tagline: "Diseño gráfico, interfaces UX/UI, Figma y edición de imagen.",
     intro: [
       "El diseño se aprende mirando, imitando y rehaciendo. Los cursos gratuitos cubren bien las herramientas —Figma, Photoshop, Illustrator o Canva— y los principios de composición, color y tipografía que las hacen útiles.",
       "Aquí hay cursos de diseño gráfico, diseño de interfaces (UI/UX), edición de imagen y herramientas de creación. Un curso te enseña dónde está cada botón; el criterio visual se gana practicando y comparando tu trabajo con el de otros.",
@@ -48,6 +53,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   marketing: {
+    tagline: "SEO, redes sociales, publicidad online, email y analítica.",
     intro: [
       "El marketing digital mezcla técnica (analítica, SEO, campañas de pago) y criterio (a quién le hablas y qué le ofreces). Es un terreno donde los cursos gratuitos son especialmente útiles para entender los conceptos, aunque las plataformas cambian sus reglas y su interfaz a menudo.",
       "Reunimos cursos de SEO, redes sociales, publicidad online, email marketing y analítica. Prioriza los que explican el porqué de cada táctica: una táctica aislada caduca, el razonamiento detrás sigue siendo válido.",
@@ -60,6 +66,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   languages: {
+    tagline: "Inglés y otras lenguas, desde nivel principiante.",
     intro: [
       "Aprender un idioma es una carrera de fondo, y un curso gratuito es un buen punto de partida, no la meta. Los vídeos y las clases sirven para gramática, vocabulario y pronunciación; la fluencia llega con horas de escucha y de práctica real.",
       "En esta categoría hay cursos de inglés y de otras lenguas, desde nivel principiante. Elige por nivel y por objetivo (viajar, trabajar, examinarte), y combina el curso con exposición diaria al idioma: series, podcasts, lectura o conversación.",
@@ -72,6 +79,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   business: {
+    tagline: "Emprendimiento, finanzas, ventas, gestión y liderazgo.",
     intro: [
       "Negocios agrupa lo necesario para montar, gestionar y hacer crecer un proyecto: finanzas básicas, estrategia, ventas, liderazgo y emprendimiento. Los cursos gratuitos dan el vocabulario y los marcos de trabajo; la experiencia se gana ejecutando.",
       "Encontrarás desde introducciones a contabilidad y finanzas personales hasta cursos de gestión de proyectos o de creación de una empresa. Ten en cuenta que la normativa fiscal y mercantil depende de cada país, así que los cursos son orientativos, no asesoramiento.",
@@ -84,6 +92,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   productivity: {
+    tagline: "Excel, hojas de cálculo, ofimática y organización personal.",
     intro: [
       "Productividad es, en la práctica, dominar las herramientas de trabajo diarias —hojas de cálculo, procesadores de texto, gestores de tareas— y tener un método para organizar tu tiempo. Es una de las áreas con mejor retorno por hora de estudio.",
       "Aquí hay cursos de Excel y Google Sheets, herramientas de ofimática, gestión del tiempo y organización personal. Los de herramientas se aprovechan mucho si los sigues con tus propios archivos de trabajo delante.",
@@ -96,6 +105,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   wellness: {
+    tagline: "Hábitos, movimiento, relajación y salud emocional.",
     intro: [
       "Bienestar reúne cursos sobre hábitos, movimiento, relajación, alimentación y salud emocional. Pueden ser una buena forma de introducirte en rutinas como el yoga, la meditación o el ejercicio en casa.",
       "Un curso en vídeo no sustituye a un profesional sanitario. Si tienes una lesión, una condición médica o dudas sobre tu salud, consulta antes con un médico, fisioterapeuta o psicólogo; usa estos cursos como apoyo, no como diagnóstico ni tratamiento.",
@@ -108,6 +118,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   music: {
+    tagline: "Guitarra, piano, teoría musical, canto y producción.",
     intro: [
       "La música se aprende escuchando y tocando, y los cursos gratuitos en vídeo son un recurso excelente para empezar: guitarra, piano, teoría musical, producción y canto tienen tutoriales completos de calidad.",
       "Nuestra selección va de cursos de instrumento para principiantes a teoría y producción con software. Lo ideal es alternar el vídeo con práctica diaria, aunque sean 15 minutos: el oído y las manos se entrenan con repetición.",
@@ -120,6 +131,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   crafts: {
+    tagline: "Costura, dibujo, fotografía, bricolaje y otros hobbies.",
     intro: [
       "Manualidades y hobbies son cursos para aprender con las manos: costura, tejido, cerámica, dibujo, fotografía, cocina creativa o bricolaje. Es un terreno donde el vídeo brilla, porque permite ver la técnica y repetirla a tu ritmo.",
       "La mayoría se pueden seguir con materiales básicos y baratos. Empieza por proyectos pequeños que puedas terminar rápido; ver un resultado acabado motiva mucho más que un proyecto enorme a medias.",
@@ -132,6 +144,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   engineering: {
+    tagline: "AutoCAD, modelado 3D, electrónica e impresión 3D.",
     intro: [
       "Ingeniería y CAD cubre diseño técnico y modelado: AutoCAD, SolidWorks, Fusion 360, electrónica, mecánica o impresión 3D. Son áreas muy prácticas, donde seguir un curso con el programa abierto es la forma natural de aprender.",
       "Muchos de estos programas tienen versiones gratuitas o educativas, y los cursos de esta categoría suelen partir de cero. Comprueba qué versión del software usa cada curso, porque la interfaz y las funciones cambian entre ediciones.",
@@ -144,6 +157,7 @@ export const CATEGORY_EDITORIAL: Record<string, CategoryEditorial> = {
     ],
   },
   education: {
+    tagline: "Metodologías docentes, tecnología educativa y técnicas de estudio.",
     intro: [
       "Educación reúne cursos sobre cómo enseñar y cómo aprender: metodologías docentes, recursos para el aula, herramientas digitales y técnicas de estudio. Es útil tanto para profesores como para cualquiera que quiera estudiar de forma más eficaz.",
       "Verás cursos de pedagogía, tecnología educativa y técnicas de aprendizaje. Ten en cuenta que los currículos y normativas educativas varían por país y comunidad, así que conviene contrastar lo aplicable con las fuentes oficiales de tu entorno.",

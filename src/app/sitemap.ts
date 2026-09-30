@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { readAllCourses, readCategories } from "@/lib/courses/read";
-import { isThinCourse } from "@/lib/courses/depth";
+import { isIndexableCourse } from "@/lib/courses/depth";
 import { GUIDES } from "@/lib/editorial/guides";
 import { SITE_URL } from "@/lib/site";
 
@@ -21,10 +21,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${SITE_URL}/guias/${guide.slug}`,
     lastModified: guide.updated,
     changeFrequency: "monthly",
+    priority: guide.kind === "ruta" ? 0.8 : 0.7,
   }));
 
-  // Thin pages are noindex (see the course page) — keep them out of the sitemap too.
-  const courseEntries: MetadataRoute.Sitemap = courses.filter((course) => !isThinCourse(course)).map((course) => ({
+  // Only pages with original editorial content are indexable (see
+  // lib/courses/depth.ts) — the rest are noindex, so they stay out of
+  // the sitemap too. A course joins it on its own once analyzed.
+  const courseEntries: MetadataRoute.Sitemap = courses.filter(isIndexableCourse).map((course) => ({
     url: `${SITE_URL}/${course.category}/${course.slug}`,
     lastModified: course.lastVerifiedAt,
     changeFrequency: "monthly",

@@ -1,13 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCourseBySlug, getCoursesByCategory, readCategories } from "@/lib/courses/read";
+import { getCourseBySlug, readAllCourses, readCategories } from "@/lib/courses/read";
 import { catalogNumber } from "@/lib/courses/catalog-number";
 import { courseBlurb } from "@/lib/courses/blurb";
-import { isThinCourse } from "@/lib/courses/depth";
+import { isIndexableCourse } from "@/lib/courses/depth";
 import { descriptionExcerpt, formatDuration, formatTimestamp } from "@/lib/courses/youtube-meta";
 import { AI_LEVEL_LABEL } from "@/lib/courses/ai-content";
-import { guideForCategory } from "@/lib/editorial/guides";
+import { recommendationRank, resolveRelated } from "@/lib/courses/ai-analysis";
+import { getGuide, guidesForCategory } from "@/lib/editorial/guides";
+import {
+  ANALYSIS_TOC,
+  AudienceSections,
+  FaqSection,
+  RelatedPathSection,
+  StudySections,
+  SyllabusBlocks,
+  VerdictSection,
+} from "@/components/courses/CourseAnalysisSections";
+import { VerdictBadge } from "@/components/courses/VerdictBadge";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { OutboundCourseLink } from "@/components/courses/OutboundCourseLink";
 import { PlatformStamp } from "@/components/courses/PlatformStamp";
@@ -28,14 +39,17 @@ export async function generateMetadata({
   if (!course) return {};
   const categoryName = categories.find((c) => c.slug === category)?.name ?? category;
   const description = course.aiSummary ?? courseBlurb(course, categoryName);
+  const title = course.aiAnalysis ? `${course.title}: análisis y plan de estudio` : course.title;
   return {
-    title: course.title,
+    title,
     description,
-    // Pages with nothing beyond what the source platform already shows
-    // stay reachable but out of the index (see lib/courses/depth.ts).
-    ...(isThinCourse(course) && { robots: { index: false, follow: true } }),
-    openGraph: { title: course.title, description },
-    twitter: { title: course.title, description },
+    alternates: { canonical: `/${category}/${slug}` },
+    // Pages without original editorial content (the analysis or a real
+    // editor note) stay reachable but out of the index — see
+    // lib/courses/depth.ts. They become indexable once analyzed.
+    ...(!isIndexableCourse(course) && { robots: { index: false, follow: true } }),
+    openGraph: { title, description },
+    twitter: { title, description },
   };
 }
 
@@ -45,12 +59,13 @@ export default async function CoursePage({
   params: Promise<{ category: string; slug: string }>;
 }) {
   const { category, slug } = await params;
-  const [course, categories, categoryCourses] = await Promise.all([
+  const [course, categories, allCourses] = await Promise.all([
     getCourseBySlug(category, slug),
     readCategories(),
-    getCoursesByCategory(category),
+    readAllCourses(),
   ]);
   if (!course) notFound();
+  const categoryCourses = allCourses.filter((c) => c.category === category);
 
   const categoryInfo = categories.find((c) => c.slug === category);
   const categorySlugs = categoryCourses.map((c) => c.slug);
@@ -62,8 +77,19 @@ export default async function CoursePage({
   const summary = course.aiSummary ?? blurb;
   const excerpt = course.description ? descriptionExcerpt(course.description) : null;
   const chapters = course.chapters ?? [];
-  const related = categoryCourses.filter((c) => c.slug !== slug).slice(0, 4);
-  const guide = guideForCategory(category);
+  const analysis = course.aiAnalysis;
+  const pathCourses = analysis ? resolveRelated(analysis, allCourses, slug) : [];
+  const pathSlugs = new Set(pathCourses.map((r) => r.course.slug));
+  // Same category, best editorial verdict first, minus what the analysis already links.
+  const related = categoryCourses
+    .filter((c) => c.slug !== slug && !pathSlugs.has(c.slug))
+    .sort((a, b) => recommendationRank(b.aiAnalysis) - recommendationRank(a.aiAnalysis))
+    .slice(0, 4);
+  const guides = [
+    ...guidesForCategory(category).slice(0, 2),
+    ...(course.platform === "youtube" ? [getGuide("seguir-un-curso-de-youtube-hasta-el-final")] : []),
+    getGuide("como-elegir-un-curso-gratis-bueno"),
+  ].filter((g): g is NonNullable<typeof g> => Boolean(g));
   const platformLabel = course.platform === "youtube" ? "YouTube" : "Udemy";
 
   const facts: { label: string; value: string }[] = [
@@ -79,6 +105,9 @@ export default async function CoursePage({
     ...(course.publishedAt
       ? [{ label: "Publicado", value: course.publishedAt.slice(0, 4) }]
       : []),
+    ...(analysis?.studyPlan.weeks
+      ? [{ label: "Plan sugerido", value: `${analysis.studyPlan.weeks} sem.` }]
+      : []),
   ];
 
   const courseJsonLd = {
@@ -91,7 +120,24 @@ export default async function CoursePage({
       name: course.platform === "youtube" ? "YouTube" : "Udemy",
     },
     url: courseUrl,
+    inLanguage: "es",
     ...(course.author && { author: { "@type": "Person", name: course.author } }),
+    ...(course.aiLevel && { educationalLevel: AI_LEVEL_LABEL[course.aiLevel] }),
+    ...(analysis && {
+      teaches: analysis.outcomes,
+      ...(analysis.prerequisites.length > 0 && { coursePrerequisites: analysis.prerequisites }),
+      review: {
+        "@type": "Review",
+        author: { "@type": "Organization", name: "cursos.unaividal.com", url: SITE_URL },
+        reviewBody: analysis.verdict.summary,
+        reviewRating: { "@type": "Rating", ratingValue: analysis.verdict.score, bestRating: 5, worstRating: 1 },
+      },
+    }),
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "Online",
+      ...(course.durationSeconds && { courseWorkload: `PT${Math.max(1, Math.round(course.durationSeconds / 60))}M` }),
+    },
     offers: {
       "@type": "Offer",
       price: 0,
@@ -99,6 +145,16 @@ export default async function CoursePage({
       category: "Free",
     },
     isAccessibleForFree: true,
+  };
+
+  const faqJsonLd = analysis && {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: analysis.faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
   };
 
   const breadcrumbJsonLd = {
@@ -115,6 +171,7 @@ export default async function CoursePage({
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
       <JsonLd data={courseJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
+      {faqJsonLd && <JsonLd data={faqJsonLd} />}
       <Link href={`/${category}`} className="font-mono text-xs text-ink-muted hover:text-ink">
         ← {categoryName}
       </Link>
@@ -132,7 +189,12 @@ export default async function CoursePage({
           <p className="mb-4 text-sm text-ink-muted">por {course.author}</p>
         )}
 
-        <p className="mb-6 text-ink-muted">{blurb}</p>
+        <p className="mb-4 text-ink-muted">{course.aiSummary ?? blurb}</p>
+        {analysis && (
+          <p className="mb-6">
+            <VerdictBadge verdict={analysis.verdict} />
+          </p>
+        )}
 
         <p className="mb-8 font-mono text-xs text-ink-muted">
           <VerifiedBadge date={course.lastVerifiedAt} /> — sigue siendo gratis en{" "}
@@ -151,6 +213,19 @@ export default async function CoursePage({
         ))}
       </dl>
 
+      {analysis && (
+        <nav aria-label="En esta ficha" className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink-muted">
+          <span>En esta ficha:</span>
+          {ANALYSIS_TOC.map((item) => (
+            <a key={item.id} href={`#${item.id}`} className="underline underline-offset-2 hover:text-ink">
+              {item.label}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      {analysis && <VerdictSection analysis={analysis} />}
+
       {(course.aiOverview || (course.aiHighlights?.length ?? 0) > 0) && (
         <section aria-labelledby="overview" className="flex flex-col gap-4">
           <h2 id="overview" className="font-serif text-xl text-ink">
@@ -168,13 +243,10 @@ export default async function CoursePage({
               ))}
             </ul>
           )}
-          <p className="font-mono text-[11px] text-ink-muted">
-            Resumen generado con IA a partir de la descripción, los capítulos y la duración
-            publicados en {platformLabel}. Puede contener imprecisiones: el contenido real es el del
-            curso original.
-          </p>
         </section>
       )}
+
+      {analysis && <AudienceSections analysis={analysis} />}
 
       {course.editorNote && (
         <section aria-labelledby="editor-note" className="flex flex-col gap-3 border-l-2 border-stamp-red pl-5">
@@ -189,21 +261,29 @@ export default async function CoursePage({
         </section>
       )}
 
-      {chapters.length > 0 && (
-        <section aria-labelledby="syllabus" className="flex flex-col gap-3">
-          <h2 id="syllabus" className="font-serif text-xl text-ink">
-            {course.youtube?.playlistId ? "Lecciones del curso" : "Qué cubre, capítulo a capítulo"}
+      {(chapters.length > 0 || (analysis?.syllabus.length ?? 0) > 0) && (
+        <section aria-labelledby="estructura" className="flex scroll-mt-24 flex-col gap-4">
+          <h2 id="estructura" className="font-serif text-xl text-ink">
+            Estructura del curso
           </h2>
-          <ol className="flex flex-col gap-1.5 text-sm text-ink-muted">
-            {chapters.slice(0, 12).map((chapter, index) => (
-              <li key={`${index}-${chapter.title}`} className="flex gap-3">
-                <span className="w-14 shrink-0 font-mono text-xs text-ink-muted">
-                  {chapter.start !== undefined ? formatTimestamp(chapter.start) : String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="text-ink">{chapter.title}</span>
-              </li>
-            ))}
-          </ol>
+          {analysis && <SyllabusBlocks analysis={analysis} />}
+          {chapters.length > 0 && (
+            <>
+              <h3 className="mt-2 font-mono text-[11px] uppercase tracking-wide text-ink-muted">
+                {course.youtube?.playlistId ? "Lecciones" : "Capítulos del vídeo"}
+              </h3>
+              <ol className="flex flex-col gap-1.5 text-sm text-ink-muted">
+                {chapters.slice(0, 12).map((chapter, index) => (
+                  <li key={`${index}-${chapter.title}`} className="flex gap-3">
+                    <span className="w-14 shrink-0 font-mono text-xs text-ink-muted">
+                      {chapter.start !== undefined ? formatTimestamp(chapter.start) : String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-ink">{chapter.title}</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
           {chapters.length > 12 && (
             <details className="text-sm">
               <summary className="cursor-pointer text-ink-muted hover:text-ink">
@@ -226,6 +306,10 @@ export default async function CoursePage({
         </section>
       )}
 
+      {analysis && <StudySections analysis={analysis} />}
+
+      <RelatedPathSection related={pathCourses} />
+
       {excerpt && (
         <section aria-labelledby="author-description" className="flex flex-col gap-3">
           <h2 id="author-description" className="font-serif text-xl text-ink">
@@ -242,14 +326,38 @@ export default async function CoursePage({
         </section>
       )}
 
-      {guide && (
-        <p className="border border-rule bg-card p-5 text-sm text-ink-muted">
-          ¿Empiezas de cero en {categoryName.toLowerCase()}? Lee{" "}
-          <Link href={`/guias/${guide.slug}`} className="text-ink underline underline-offset-4 hover:text-stamp-red">
-            {guide.title}
+      {analysis && <FaqSection faq={analysis.faq} />}
+
+      {analysis && (
+        <p className="border-t border-rule pt-4 font-mono text-[11px] leading-relaxed text-ink-muted">
+          Análisis editorial elaborado con ayuda de IA a partir de la descripción, los capítulos y la duración
+          publicados en {platformLabel}, y revisado según{" "}
+          <Link href="/como-verificamos#analisis" className="underline underline-offset-2 hover:text-ink">
+            nuestro método
+          </Link>
+          . El contenido del curso es obra de {course.author ?? "su autor"}; si ves algún error,{" "}
+          <Link href="/contacto" className="underline underline-offset-2 hover:text-ink">
+            avísanos
           </Link>
           .
         </p>
+      )}
+
+      {guides.length > 0 && (
+        <section aria-labelledby="guides" className="flex flex-col gap-3 border border-rule bg-card p-5">
+          <h2 id="guides" className="font-serif text-lg text-ink">
+            Guías para sacarle partido
+          </h2>
+          <ul className="flex flex-col gap-2 text-sm">
+            {guides.map((g) => (
+              <li key={g.slug}>
+                <Link href={`/guias/${g.slug}`} className="text-ink underline underline-offset-4 hover:text-stamp-red">
+                  {g.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {related.length > 0 && (

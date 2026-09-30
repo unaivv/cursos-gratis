@@ -1,4 +1,5 @@
 import { pgTable, text, uuid, date, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import type { CourseAnalysis } from "../courses/ai-analysis";
 
 /**
  * Course catalog table. Replaces `content/courses/**\/*.json`.
@@ -51,6 +52,11 @@ export const courses = pgTable("courses", {
   aiHighlights: jsonb("ai_highlights").$type<string[]>(),
   aiLevel: text("ai_level", { enum: ["principiante", "intermedio", "avanzado"] }),
   aiGeneratedAt: timestamp("ai_generated_at", { withTimezone: true }),
+  // The rich editorial analysis (audience, outcomes, structure, verdict,
+  // FAQ…) — shape and limits in src/lib/courses/ai-analysis.ts. A course
+  // page is only indexable once this is set (src/lib/courses/depth.ts).
+  aiAnalysis: jsonb("ai_analysis").$type<CourseAnalysis>(),
+  aiAnalyzedAt: timestamp("ai_analyzed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

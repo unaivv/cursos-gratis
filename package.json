@@ -12,6 +12,7 @@
     "enrich:youtube": "tsx scripts/enrich-youtube.ts",
     "ai:export": "tsx scripts/export-course-data.ts",
     "ai:import": "tsx scripts/import-ai-content.ts",
+    "ai:backfill": "tsx scripts/ai-backfill.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/seed-categories.ts && tsx scripts/migrate-courses.ts"

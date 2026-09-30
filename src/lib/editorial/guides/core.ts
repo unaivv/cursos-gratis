@@ -1,34 +1,20 @@
+import type { Guide } from "./types";
+
 /**
- * Long-form guides (/guias). Deliberately generic about *which* courses
- * to take — the live course list for a guide's category is rendered from
- * the database next to the text, so the advice never goes stale when the
- * catalog changes.
+ * The first guides (September 2026): one starting route per big
+ * category, plus finishing a course and choosing a platform.
  */
-export type GuideSection = {
-  heading: string;
-  paragraphs?: string[];
-  steps?: string[];
-};
-
-export type Guide = {
-  slug: string;
-  title: string;
-  description: string;
-  /** When set, the guide page lists this category's courses under the text. */
-  categorySlug?: string;
-  /** ISO date of the last substantive edit. */
-  updated: string;
-  intro: string;
-  sections: GuideSection[];
-};
-
-export const GUIDES: Guide[] = [
+export const CORE_GUIDES: Guide[] = [
   {
     slug: "aprender-programacion-desde-cero",
+    kind: "ruta",
+    related: ["aprender-programacion-gratis-ruta-completa", "ruta-desarrollo-frontend", "seguir-un-curso-de-youtube-hasta-el-final"],
+    shortTitle: "Programación desde cero",
     title: "Cómo aprender programación desde cero con cursos gratis",
     description:
       "Un camino en cuatro etapas para pasar de no saber nada a construir tus primeros proyectos usando solo cursos gratuitos de YouTube y Udemy.",
     categorySlug: "programming",
+    published: "2026-09-21",
     updated: "2026-09-21",
     intro:
       "Hay tanto material gratuito para aprender a programar que el problema real es otro: elegir un camino y sostenerlo. Esta guía propone un orden razonable, qué esperar de cada etapa y cómo evitar los errores más comunes de quien empieza.",
@@ -76,13 +62,34 @@ export const GUIDES: Guide[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: "¿Cuánto tiempo se tarda en aprender a programar?",
+        answer:
+          "Aprender los fundamentos lleva unos pocos meses con práctica regular; llegar a construir proyectos propios con soltura, bastante más. No hay una cifra única, porque depende del tiempo que dediques, de tu punto de partida y de lo que entiendas por «saber programar». Mide el progreso por lo que eres capaz de construir sin seguir un tutorial.",
+      },
+      {
+        question: "¿Es tarde para empezar a programar?",
+        answer:
+          "No. Hay personas que aprenden a programar a cualquier edad, tanto por curiosidad como para cambiar de profesión. Lo que más influye no es la edad, sino la constancia y la práctica. Si te preocupa el acceso al empleo, prioriza desde el principio proyectos que demuestren lo que sabes hacer.",
+      },
+      {
+        question: "¿Necesito estudiar una carrera o un bootcamp?",
+        answer:
+          "No es imprescindible para aprender: la mayoría de conocimientos están disponibles en cursos gratuitos y documentación abierta. Una formación reglada o un programa intensivo aportan estructura, acompañamiento y, en algunos casos, un título con valor formal. Si aprendes por tu cuenta, compensa la falta de estructura con un plan y la falta de acreditación con un buen portfolio.",
+      },
+    ],
   },
   {
     slug: "empezar-en-datos-e-inteligencia-artificial",
+    kind: "ruta",
+    related: ["ruta-analisis-de-datos", "ruta-machine-learning-e-ia", "proyectos-para-consolidar-lo-aprendido"],
+    shortTitle: "Empezar en datos e IA",
     title: "Cómo empezar en datos e inteligencia artificial con cursos gratis",
     description:
       "Qué aprender primero, en qué orden y cómo practicar si quieres entrar en el análisis de datos o el aprendizaje automático sin gastar dinero.",
     categorySlug: "data-ai",
+    published: "2026-09-21",
     updated: "2026-09-21",
     intro:
       "El campo de los datos y la IA impone respeto, pero la puerta de entrada es más amable de lo que parece. Esta guía ordena los pasos para avanzar sin perderte entre herramientas y modas.",
@@ -123,13 +130,34 @@ export const GUIDES: Guide[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: "¿Datos o inteligencia artificial: por dónde empiezo?",
+        answer:
+          "Por los datos. Manejar, limpiar y analizar datos es la base de cualquier trabajo de inteligencia artificial y tiene salidas propias. Cuando lo domines, los modelos de aprendizaje automático te resultarán mucho más comprensibles. Tenemos una ruta específica para cada camino si quieres más detalle.",
+      },
+      {
+        question: "¿Necesito una carrera de matemáticas?",
+        answer:
+          "Para análisis de datos, no: basta con estadística básica bien entendida. Para aprendizaje automático, conviene intuición en álgebra lineal, cálculo y probabilidad, que puede adquirirse con cursos gratuitos. Solo la investigación en modelos nuevos requiere una formación matemática profunda.",
+      },
+      {
+        question: "¿Qué lenguaje aprendo?",
+        answer:
+          "SQL y Python son la combinación más habitual. SQL para consultar bases de datos, presente en casi cualquier puesto de datos, y Python para análisis, automatización y aprendizaje automático. Las hojas de cálculo siguen siendo una herramienta muy útil y un buen punto de partida si nunca has programado.",
+      },
+    ],
   },
   {
     slug: "aprender-diseno-con-cursos-gratis",
+    kind: "ruta",
+    related: ["ruta-diseno-ux-ui", "ruta-diseno-grafico", "demostrar-lo-aprendido-sin-certificado"],
+    shortTitle: "Empezar en diseño",
     title: "Aprender diseño con cursos gratis: por dónde empezar",
     description:
       "Principios, herramientas y práctica: una hoja de ruta realista para empezar en diseño gráfico y de interfaces sin pagar un curso.",
     categorySlug: "design",
+    published: "2026-09-21",
     updated: "2026-09-21",
     intro:
       "El diseño parece cuestión de talento, pero en gran parte es un oficio con reglas que se aprenden. Esta guía te propone un orden para adquirirlas usando cursos gratuitos y mucha práctica.",
@@ -165,13 +193,34 @@ export const GUIDES: Guide[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: "¿Qué herramienta de diseño aprendo primero?",
+        answer:
+          "Depende de lo que quieras diseñar. Para interfaces de webs y aplicaciones, Figma es un estándar muy extendido con plan gratuito. Para diseño gráfico e impresión, un programa de gráficos vectoriales y otro de edición de imagen, que tienen alternativas gratuitas. Aprende primero los principios; la herramienta es secundaria.",
+      },
+      {
+        question: "¿Se puede aprender diseño sin talento artístico?",
+        answer:
+          "Sí. Gran parte del diseño es un oficio con reglas que se aprenden: jerarquía, alineación, contraste, espaciado, tipografía y color. El criterio visual se entrena analizando y rehaciendo buenos diseños. La práctica constante importa mucho más que un supuesto talento innato.",
+      },
+      {
+        question: "¿Diseño gráfico o diseño de interfaces?",
+        answer:
+          "Comparten fundamentos, así que puedes empezar por lo común y decidir después. El diseño gráfico trabaja con marcas, carteles y publicaciones; el de interfaces, con productos digitales y cómo se usan. Tenemos una ruta para cada uno con más detalle sobre qué aprender en cada etapa.",
+      },
+    ],
   },
   {
     slug: "aprender-idiomas-con-cursos-gratis",
+    kind: "ruta",
+    related: ["ruta-ingles-desde-cero", "aprender-con-poco-tiempo", "tomar-apuntes-y-repasar"],
+    shortTitle: "Idiomas con cursos gratis",
     title: "Aprender idiomas con cursos gratis: cómo combinarlos para progresar",
     description:
       "Los cursos en vídeo dan estructura, pero la fluencia depende de la práctica. Cómo montar una rutina que combine ambos.",
     categorySlug: "languages",
+    published: "2026-09-21",
     updated: "2026-09-21",
     intro:
       "Un curso gratuito de idiomas es un excelente punto de partida, pero rara vez basta por sí solo. Esta guía explica qué aporta cada tipo de recurso y cómo combinarlos en una rutina que puedas mantener.",
@@ -205,12 +254,33 @@ export const GUIDES: Guide[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: "¿Cuánto tiempo al día debo dedicar a un idioma?",
+        answer:
+          "Lo que puedas mantener todos los días. Entre veinte y sesenta minutos diarios, combinando curso, escucha y práctica, es un rango realista para avanzar de forma constante. La regularidad importa más que la duración: mejor treinta minutos cada día que tres horas un solo día a la semana.",
+      },
+      {
+        question: "¿Puedo aprender dos idiomas a la vez?",
+        answer:
+          "Es posible, pero más lento y más propenso a confusiones, sobre todo si los idiomas se parecen. Si lo haces, conviene que uno esté ya en un nivel intermedio o que sean idiomas muy distintos entre sí. Para la mayoría de personas, centrarse en uno hasta un nivel cómodo es más eficaz.",
+      },
+      {
+        question: "¿Cómo practico la conversación gratis?",
+        answer:
+          "Con intercambios de idiomas, en persona o en línea: quedas con alguien que aprende español y practicáis cada uno el idioma del otro. También hay comunidades y grupos de conversación gratuitos en muchas ciudades. Al principio cuesta, pero es la forma más directa de ganar fluidez.",
+      },
+    ],
   },
   {
     slug: "como-terminar-un-curso-online",
+    kind: "metodo",
+    related: ["seguir-un-curso-de-youtube-hasta-el-final", "plan-de-estudio-semanal", "errores-comunes-al-aprender-solo"],
+    shortTitle: "Terminar un curso online",
     title: "Cómo terminar un curso online gratis (y no abandonar a la tercera semana)",
     description:
       "Los cursos gratuitos tienen una tasa de abandono alta. Estas son las técnicas que más ayudan a llegar hasta el final.",
+    published: "2026-09-21",
     updated: "2026-09-21",
     intro:
       "Empezar un curso gratuito es fácil; terminarlo, no tanto. Al no haber dinero de por medio ni fechas límite, la motivación es lo único que te sostiene. Estas ideas te ayudan a construir estructura donde el curso no la pone.",
@@ -249,12 +319,33 @@ export const GUIDES: Guide[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: "¿Por qué abandono siempre los cursos a mitad?",
+        answer:
+          "Suele deberse a una combinación de falta de objetivo concreto, falta de horario fijo y una parte difícil que coincide con la pérdida de novedad. Las técnicas de esta guía atacan cada una de esas causas. Si aun así te pasa a menudo, revisa si los cursos que eliges encajan con tu nivel y tu interés real.",
+      },
+      {
+        question: "¿Qué hago si me atasco en una lección?",
+        answer:
+          "Repítela una vez, busca otra explicación del mismo concepto y, si sigues sin entenderlo, apúntalo como duda y continúa. Muchas veces se aclara con lo que viene después. Lo que conviene evitar es quedarse días parado en el mismo punto.",
+      },
+      {
+        question: "¿Cómo sé si realmente he aprendido algo?",
+        answer:
+          "Intenta aplicarlo sin ayuda: repite un ejercicio sin mirar, explícalo con tus palabras o úsalo en un proyecto pequeño. Si puedes hacerlo, lo has aprendido. Si solo lo reconoces cuando lo ves, todavía no, y un repaso activo te ayudará a fijarlo.",
+      },
+    ],
   },
   {
     slug: "youtube-o-udemy-cursos-gratis",
+    kind: "eleccion",
+    related: ["como-elegir-un-curso-gratis-bueno", "seguir-un-curso-de-youtube-hasta-el-final", "demostrar-lo-aprendido-sin-certificado"],
+    shortTitle: "YouTube o Udemy",
     title: "Cursos gratis en YouTube o en Udemy: diferencias y cuál elegir",
     description:
       "Qué ofrece cada plataforma en su versión gratuita, sus límites y cómo decidir según lo que quieras aprender.",
+    published: "2026-09-21",
     updated: "2026-09-21",
     intro:
       "En este catálogo verás cursos de las dos plataformas. No son equivalentes: cada una tiene puntos fuertes y limitaciones. Conocerlos te ayuda a elegir el formato que mejor encaja contigo.",
@@ -292,13 +383,22 @@ export const GUIDES: Guide[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: "¿Los cursos gratis de Udemy tienen certificado?",
+        answer:
+          "Las condiciones cambian con el tiempo y pueden variar entre cursos. Comprueba en la página de cada curso qué incluye exactamente la versión gratuita. En general, conviene no elegir un curso gratuito solo por el certificado: lo que demuestra tus habilidades es lo que eres capaz de hacer.",
+      },
+      {
+        question: "¿Por qué en YouTube hay cursos tan largos?",
+        answer:
+          "Muchos canales educativos publican cursos completos en un solo vídeo de varias horas, organizado por capítulos, para que se pueda seguir de principio a fin. Otros prefieren listas de reproducción con lecciones cortas. Ambos formatos pueden ser excelentes; dividir el curso en sesiones es la clave para terminarlo.",
+      },
+      {
+        question: "¿Cómo encuentro cursos buenos en cada plataforma?",
+        answer:
+          "Revisa el temario, la fecha, el autor y unos minutos del contenido antes de empezar. En nuestro catálogo, cada ficha incluye un análisis con el público al que va dirigido, los requisitos, la estructura, los puntos fuertes y débiles y un plan de estudio sugerido para ayudarte a decidir.",
+      },
+    ],
   },
 ];
-
-export function getGuide(slug: string): Guide | undefined {
-  return GUIDES.find((guide) => guide.slug === slug);
-}
-
-export function guideForCategory(categorySlug: string): Guide | undefined {
-  return GUIDES.find((guide) => guide.categorySlug === categorySlug);
-}

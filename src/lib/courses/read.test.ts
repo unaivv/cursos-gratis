@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toCourseRecord } from "./read";
 import type { CourseRow } from "@/lib/db/schema";
+import { sampleAnalysis } from "./ai-analysis.fixture";
 
 // DB-querying functions (readAllCourses, etc.) are verified against the
 // real Supabase DB via the manual runtime harness, not unit tests — see
@@ -34,6 +35,8 @@ const baseRow: CourseRow = {
   aiHighlights: null,
   aiLevel: null,
   aiGeneratedAt: null,
+  aiAnalysis: null,
+  aiAnalyzedAt: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -84,6 +87,12 @@ describe("toCourseRecord", () => {
     expect(withAi.aiOverview).toBe("Resumen largo.");
     expect(withAi.aiHighlights).toEqual(["Variables", "Funciones"]);
     expect(withAi.aiLevel).toBe("principiante");
+  });
+
+  it("maps a valid analysis and drops a malformed one", () => {
+    expect(toCourseRecord({ ...baseRow, aiAnalysis: sampleAnalysis }).aiAnalysis).toEqual(sampleAnalysis);
+    const broken = { version: 1 } as unknown as CourseRow["aiAnalysis"];
+    expect(toCourseRecord({ ...baseRow, aiAnalysis: broken }).aiAnalysis).toBeUndefined();
   });
 
   it("maps a null author to undefined", () => {

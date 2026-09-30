@@ -32,6 +32,9 @@ export function SiteHeader() {
           <Link href="/" className="text-ink hover:underline underline-offset-4">
             Catálogo
           </Link>
+          <Link href="/guias#rutas" className="text-ink-muted hover:text-ink hover:underline underline-offset-4">
+            Rutas
+          </Link>
           <Link href="/guias" className="text-ink-muted hover:text-ink hover:underline underline-offset-4">
             Guías
           </Link>

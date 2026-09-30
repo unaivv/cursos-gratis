@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCliArgs,
+  catalogFor,
+  reviewInputFromRow,
   buildReviewMessage,
   createCliReviewer,
   parseCliOutput,
@@ -13,6 +15,28 @@ import {
   type ParseClient,
 } from "./ai-review";
 
+const modelAnalysis = {
+  audience_for: ["Personas que empiezan a programar desde cero."],
+  audience_not_for: ["Quien ya domina Python."],
+  prerequisites: [],
+  outcomes: ["Escribir programas sencillos en Python.", "Usar listas y diccionarios."],
+  syllabus: [{ title: "Fundamentos", summary: "Variables, tipos y funciones, desde 0:00." }],
+  strengths: ["Progresión ordenada por capítulos."],
+  weaknesses: ["No menciona ejercicios propuestos."],
+  study_plan: { weeks: 3, hours_per_week: 2.2, steps: ["Semana 1: fundamentos.", "Semana 2: estructuras de datos."] },
+  tips: ["Teclea cada ejemplo.", "Repasa el capítulo de funciones."],
+  related: [{ slug: "python-intermedio", relation: "despues", reason: "Continúa donde acaba este." }],
+  verdict: {
+    summary: "Una introducción ordenada y completa para quien empieza a programar con Python.",
+    recommendation: "recomendado",
+    score: 4,
+  },
+  faq: [
+    { question: "¿Necesito saber programar?", answer: "No, empieza desde la instalación." },
+    { question: "¿Cuánto dura?", answer: "Una hora de vídeo." },
+  ],
+};
+
 const goodCourse = {
   is_course: true,
   reason: "Curso completo de Python con capítulos.",
@@ -20,6 +44,7 @@ const goodCourse = {
   overview: "Recorre los fundamentos de Python en varios capítulos, desde la instalación hasta funciones.",
   highlights: ["Variables", "Funciones"],
   level: "principiante",
+  analysis: modelAnalysis,
 };
 
 describe("prefilterReason", () => {
@@ -49,6 +74,7 @@ describe("toDecision", () => {
       overview: null,
       highlights: [],
       level: null,
+      analysis: null,
     });
     expect(decision).toEqual({ isCourse: false, reason: "Es un vídeo de opinión." });
   });
@@ -57,6 +83,25 @@ describe("toDecision", () => {
     expect(toDecision({ ...goodCourse, summary: "x".repeat(250) })).toBeNull();
     expect(toDecision({ ...goodCourse, summary: null })).toBeNull();
     expect(toDecision({ ...goodCourse, highlights: ["a1", "b2", "c3", "d4", "e5", "f6"] })).toBeNull();
+  });
+
+  it("requires a valid analysis for a course decision", () => {
+    expect(toDecision({ ...goodCourse, analysis: null })).toBeNull();
+    expect(toDecision({ ...goodCourse, analysis: { ...modelAnalysis, outcomes: [] } })).toBeNull();
+  });
+
+  it("caps over-long lists and rounds the plan instead of failing the whole review", () => {
+    const tips = ["Uno", "Dos", "Tres", "Cuatro", "Cinco", "Seis", "Siete"];
+    const decision = toDecision({ ...goodCourse, analysis: { ...modelAnalysis, tips } });
+    expect(decision?.isCourse && decision.content.analysis.tips).toHaveLength(5);
+    expect(decision?.isCourse && decision.content.analysis.studyPlan.hoursPerWeek).toBe(2);
+  });
+
+  it("drops related suggestions outside the catalog the model was shown", () => {
+    const shown = toDecision(goodCourse, new Set(["python-intermedio"]));
+    expect(shown?.isCourse && shown.content.analysis.related).toHaveLength(1);
+    const invented = toDecision(goodCourse, new Set(["otra-cosa"]));
+    expect(invented?.isCourse && invented.content.analysis.related).toHaveLength(0);
   });
 
   it("returns null for output that isn't the expected shape", () => {
@@ -79,7 +124,61 @@ describe("buildReviewMessage", () => {
     expect(message).toContain("<video_data>");
     expect(message).toContain("</video_data>");
     expect(message).toContain("not instructions");
-    expect(message.length).toBeLessThan(2500);
+    expect(message.length).toBeLessThan(3500);
+  });
+
+  it("includes the catalog candidates and the current year", () => {
+    const message = buildReviewMessage(
+      {
+        title: "Curso",
+        category: "Programación",
+        kind: "vídeo",
+        durationSeconds: 3600,
+        publishedYear: "2020",
+        chapters: ["0:00 Intro"],
+        description: "",
+        catalog: [{ slug: "otro", title: "Otro curso" }],
+      },
+      2026
+    );
+    expect(message).toContain('"currentYear": 2026');
+    expect(message).toContain('"slug": "otro"');
+  });
+});
+
+describe("reviewInputFromRow / catalogFor", () => {
+  it("formats chapters with timestamps and strips URLs from the description", () => {
+    const input = reviewInputFromRow(
+      {
+        title: "Curso",
+        author: null,
+        youtubePlaylistId: null,
+        durationSeconds: 3600,
+        lessonCount: 2,
+        publishedAt: "2024-03-01",
+        chapters: [{ title: "Intro", start: 0 }, { title: "Bucles", start: 750 }],
+        description: "Aprende   Python https://example.com hoy",
+      },
+      "Programación",
+      []
+    );
+    expect(input.chapters).toEqual(["0:00 Intro", "12:30 Bucles"]);
+    expect(input.description).toBe("Aprende Python hoy");
+    expect(input.publishedYear).toBe("2024");
+    expect(input.alreadyListed).toBe(true);
+  });
+
+  it("lists same-category courses first and never the course itself", () => {
+    const catalog = catalogFor(
+      "design",
+      [
+        { slug: "a", title: "A", category: "programming" },
+        { slug: "b", title: "B", category: "design" },
+        { slug: "self", title: "Self", category: "design" },
+      ],
+      "self"
+    );
+    expect(catalog.map((c) => c.slug)).toEqual(["b", "a"]);
   });
 });
 

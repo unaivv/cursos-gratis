@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decideIntake, type Reviewer } from "./intake-youtube";
 import type { CourseRecord } from "../src/lib/courses/schema";
 import type { VideoItem } from "./enrich-youtube";
+import { sampleAnalysis } from "../src/lib/courses/ai-analysis.fixture";
 
 function candidate(id: string, duration: string | null, title = `Vídeo ${id}`) {
   const record: CourseRecord = {
@@ -29,6 +30,7 @@ const courseDecision = {
     overview: "Recorre los fundamentos de Python en varios capítulos y ejercicios.",
     highlights: ["Variables"],
     level: null,
+    analysis: sampleAnalysis,
   },
 };
 
@@ -59,6 +61,20 @@ describe("decideIntake", () => {
     expect(result.rejected).toEqual([
       expect.objectContaining({ videoId: "b", reason: "Es una noticia.", source: "ai" }),
     ]);
+  });
+
+  it("offers the published catalog, minus the video itself, as related-course candidates", async () => {
+    let seen: string[] = [];
+    const reviewer: Reviewer = async (input) => {
+      seen = (input.catalog ?? []).map((c) => c.slug);
+      return courseDecision;
+    };
+    await decideIntake([candidate("a", "PT1H")], reviewer, [
+      { slug: "video-a", title: "Él mismo", category: "programming" },
+      { slug: "otro", title: "Otro curso", category: "design" },
+      { slug: "python", title: "Python", category: "programming" },
+    ]);
+    expect(seen).toEqual(["python", "otro"]);
   });
 
   it("skips (to retry) instead of rejecting when the review errors or the video is missing", async () => {

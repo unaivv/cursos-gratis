@@ -3,6 +3,8 @@
  * scripts/export-course-data.ts). Every object is validated against
  * aiContentSchema and matched to an existing YouTube course by id —
  * anything invalid or unknown is reported and skipped, never written.
+ * Objects may carry the optional `analysis` (courseAnalysisSchema, with
+ * `version`) — the editorial analysis that makes the page indexable.
  *
  * Run: DATABASE_URL=... npx tsx scripts/import-ai-content.ts out-1.json [out-2.json ...]
  */
@@ -29,7 +31,7 @@ async function main() {
         problems.push(`${id}: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
         continue;
       }
-      const { id, summary, overview, highlights, level } = parsed.data;
+      const { id, summary, overview, highlights, level, analysis } = parsed.data;
       if (seen.has(id)) {
         problems.push(`${id}: duplicate id across files`);
         continue;
@@ -44,6 +46,8 @@ async function main() {
           aiHighlights: highlights,
           aiLevel: level,
           aiGeneratedAt: new Date(),
+          // Summary-only files leave an existing analysis untouched.
+          ...(analysis && { aiAnalysis: analysis, aiAnalyzedAt: new Date() }),
         })
         .where(and(eq(courses.id, id), eq(courses.platform, "youtube")))
         .returning({ id: courses.id });
