@@ -47,9 +47,9 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong className="text-ink">Analítica</strong> (Google Tag Manager) —{" "}
-              <em>solo si aceptas el aviso de cookies</em> que aparece al entrar. Mide qué
+              <em>solo si aceptas el aviso de privacidad</em> que aparece al entrar. Mide qué
               fichas se usan. Puedes rechazarlo sin que el catálogo deje de funcionar; tu
-              elección se guarda en tu navegador (localStorage), no en un servidor.
+              elección la guarda la plataforma de consentimiento en tu navegador.
             </li>
           </ul>
         </section>
@@ -57,11 +57,11 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="font-serif text-xl text-ink">Publicidad</h2>
           <p>
-            Este sitio puede mostrar anuncios servidos por Google AdSense. Es un consentimiento
-            aparte del de analítica: si estás en el Espacio Económico Europeo, Reino Unido o
-            Suiza, Google te mostrará su propio aviso (gestionado por su plataforma de
-            consentimiento, no por el banner de cookies de este sitio) para decidir si los
-            anuncios se personalizan según tu navegación. Puedes gestionar esas preferencias en{" "}
+            Este sitio puede mostrar anuncios servidos por The Moneytizer (Azerion) y Google
+            AdSense. El aviso de privacidad que aparece al entrar es una plataforma de
+            consentimiento certificada por IAB Europe (TCF): ahí decides, por finalidad y por
+            socio, si los anuncios se personalizan según tu navegación, y puedes cambiar tu
+            elección en cualquier momento. También puedes gestionar las preferencias de Google en{" "}
             <a
               href="https://adssettings.google.com"
               rel="noopener noreferrer"

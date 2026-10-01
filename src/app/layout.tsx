@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Newsreader, Public_Sans, Courier_Prime } from "next/font/google";
 import { ConsentGate } from "@/components/analytics/ConsentGate";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
+import { MONEYTIZER_CMP_SNIPPET } from "@/components/ads/moneytizerCmp";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -62,6 +64,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${newsreader.variable} ${publicSans.variable} ${courierPrime.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper font-sans text-ink">
+        <Script id="moneytizer-cmp" strategy="beforeInteractive">
+          {MONEYTIZER_CMP_SNIPPET}
+        </Script>
         <SiteHeader />
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />

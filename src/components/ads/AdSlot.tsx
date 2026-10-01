@@ -12,11 +12,8 @@ declare global {
 /**
  * One AdSense ad unit — renders whenever a publisher id and this specific
  * slot's id are both configured (see env vars, e.g. NEXT_PUBLIC_ADSENSE_
- * SLOT_HOME, read by the caller). NOT gated by our own analytics consent
- * banner: ad consent for EEA/UK/CH visitors is Google's own Funding
- * Choices CMP's job (see AdSenseScript) — it decides personalized vs.
- * non-personalized vs. nothing from its own prompt, independently of
- * whether someone accepted our GTM banner. Framed as a labeled card like
+ * SLOT_HOME, read by the caller). Ad consent comes from the TCF CMP
+ * (see AdSenseScript), read by adsbygoogle.js itself. Framed as a labeled card like
  * everything else in the catalog, not a bare foreign banner.
  */
 export function AdSlot({ slotId, label = "Publicidad" }: { slotId?: string; label?: string }) {

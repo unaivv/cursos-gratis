@@ -6,63 +6,77 @@
 declare global {
   interface Window {
     dataLayer?: unknown[];
+    __tcfapi?: TcfApi;
   }
 }
 
 export const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
-// Google AdSense publisher id (ca-pub-...) — set once the site is
-// approved. Ads share the same consent gate as analytics: one banner,
-// one choice, both blocked on "Rechazar".
+// Google AdSense publisher id (ca-pub-...). Ad consent is read by the ad
+// tags themselves from the TCF CMP (moneytizerCmp.ts), not from this module.
 export const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
-const CONSENT_STORAGE_KEY = "cursos-unaividal:analytics-consent";
+export type ConsentSnapshot = "granted" | "denied" | "pending";
 
-export type ConsentChoice = "granted" | "denied";
-export type ConsentSnapshot = ConsentChoice | "pending";
+// Subset of the IAB TCF v2 `TCData` object this site reads.
+interface TcData {
+  eventStatus?: "tcloaded" | "cmpuishown" | "useractioncomplete";
+  gdprApplies?: boolean;
+  purpose?: { consents?: Record<string, boolean> };
+}
+type TcfApi = (
+  command: string,
+  version: number,
+  callback: (tcData: TcData, success: boolean) => void
+) => void;
 
-function readStoredConsent(): ConsentChoice | null {
-  try {
-    const value = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    return value === "granted" || value === "denied" ? value : null;
-  } catch {
+// TCF purpose 1 = "Store and/or access information on a device" — the
+// one GTM's cookies need. Outside GDPR (gdprApplies === false) there is
+// nothing to ask, so analytics is allowed.
+function consentFromTcData(tcData: TcData): ConsentSnapshot | null {
+  if (tcData.eventStatus !== "tcloaded" && tcData.eventStatus !== "useractioncomplete") {
     return null;
   }
+  if (tcData.gdprApplies === false) return "granted";
+  return tcData.purpose?.consents?.["1"] ? "granted" : "denied";
 }
 
-// Minimal external store so the consent banner can read/react to
-// localStorage via `useSyncExternalStore` instead of setState-in-effect
-// (an external, client-only source of truth is exactly what that hook is
-// for — see https://react.dev/reference/react/useSyncExternalStore).
+// Minimal external store over the CMP's `__tcfapi` events so ConsentGate
+// can react via `useSyncExternalStore` (see
+// https://react.dev/reference/react/useSyncExternalStore). Stays "pending"
+// if the CMP never loads (blocked) — no consent signal, no tracking.
 const listeners = new Set<() => void>();
-let cachedSnapshot: ConsentSnapshot = "pending";
-let hydrated = false;
+let snapshot: ConsentSnapshot = "pending";
+let listening = false;
+
+function listenToCmp(): void {
+  if (listening || typeof window === "undefined") return;
+  if (!window.__tcfapi) {
+    // CMP stub not executed yet — try once more after the page loads.
+    window.addEventListener("load", listenToCmp, { once: true });
+    return;
+  }
+  listening = true;
+  window.__tcfapi("addEventListener", 2, (tcData, success) => {
+    if (!success) return;
+    const next = consentFromTcData(tcData);
+    if (!next || next === snapshot) return;
+    snapshot = next;
+    for (const listener of listeners) listener();
+  });
+}
 
 export function subscribeToConsent(onStoreChange: () => void): () => void {
   listeners.add(onStoreChange);
+  listenToCmp();
   return () => listeners.delete(onStoreChange);
 }
 
 export function getConsentSnapshot(): ConsentSnapshot {
-  if (!hydrated) {
-    cachedSnapshot = readStoredConsent() ?? "pending";
-    hydrated = true;
-  }
-  return cachedSnapshot;
+  return snapshot;
 }
 
 export function getConsentServerSnapshot(): ConsentSnapshot {
   return "pending";
-}
-
-export function storeConsent(choice: ConsentChoice): void {
-  try {
-    window.localStorage.setItem(CONSENT_STORAGE_KEY, choice);
-  } catch {
-    // localStorage unavailable (private mode, blocked) — consent banner
-    // will just re-prompt next visit. Not fatal.
-  }
-  cachedSnapshot = choice;
-  for (const listener of listeners) listener();
 }
 
 /**
