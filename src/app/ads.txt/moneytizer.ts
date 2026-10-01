@@ -3,6 +3,10 @@
 export const MONEYTIZER_ADS_TXT = `OWNERDOMAIN=unaividal.com
 MANAGERDOMAIN=themoneytizer.com
 themoneytizer.com,133130,DIRECT
+improvedigital.com, 1602_133130, DIRECT
+improvedigital.com, 1033_133130, DIRECT
+connectad.io,586,RESELLER,85ac85a30c93b3e5
+adform.com,768,RESELLER,9f5210a2f0999e32
 smartadserver.com, 1097, RESELLER
 pubmatic.com, 156439, RESELLER, 5d62403b186f2ace
 pubmatic.com, 154037, RESELLER, 5d62403b186f2ace
