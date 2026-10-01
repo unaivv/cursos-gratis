@@ -54,7 +54,7 @@ export type ReviewInput = {
   author?: string | null;
   channelName?: string | null;
   category: string;
-  kind: "vídeo" | "lista de reproducción";
+  kind: "vídeo" | "lista de reproducción" | "curso de Udemy";
   durationSeconds: number | null;
   lessonCount?: number | null;
   publishedYear: string | null;
@@ -204,6 +204,7 @@ export function reviewInputFromRow(
   row: {
     title: string;
     author: string | null;
+    platform?: string;
     youtubePlaylistId: string | null;
     durationSeconds: number | null;
     lessonCount: number | null;
@@ -219,7 +220,7 @@ export function reviewInputFromRow(
     title: row.title,
     author: row.author,
     category: categoryName,
-    kind: row.youtubePlaylistId ? "lista de reproducción" : "vídeo",
+    kind: row.platform === "udemy" ? "curso de Udemy" : row.youtubePlaylistId ? "lista de reproducción" : "vídeo",
     durationSeconds: row.durationSeconds,
     lessonCount: row.lessonCount,
     publishedYear: row.publishedAt ? row.publishedAt.slice(0, 4) : null,

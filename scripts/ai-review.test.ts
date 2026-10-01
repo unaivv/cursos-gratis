@@ -168,6 +168,25 @@ describe("reviewInputFromRow / catalogFor", () => {
     expect(input.alreadyListed).toBe(true);
   });
 
+  it("describes Udemy rows as a Udemy course, not a video", () => {
+    const input = reviewInputFromRow(
+      {
+        title: "Curso",
+        author: null,
+        platform: "udemy",
+        youtubePlaylistId: null,
+        durationSeconds: null,
+        lessonCount: null,
+        publishedAt: null,
+        chapters: null,
+        description: null,
+      },
+      "Ofimática",
+      []
+    );
+    expect(input.kind).toBe("curso de Udemy");
+  });
+
   it("lists same-category courses first and never the course itself", () => {
     const catalog = catalogFor(
       "design",
