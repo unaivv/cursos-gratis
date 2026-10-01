@@ -11,6 +11,7 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: "/contacto" },
   openGraph: { title: TITLE, description: DESCRIPTION },
   twitter: { title: TITLE, description: DESCRIPTION },
 };

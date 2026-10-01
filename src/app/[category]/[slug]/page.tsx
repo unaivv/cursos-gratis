@@ -5,7 +5,8 @@ import { getCourseBySlug, readAllCourses, readCategories } from "@/lib/courses/r
 import { catalogNumber } from "@/lib/courses/catalog-number";
 import { courseBlurb } from "@/lib/courses/blurb";
 import { isIndexableCourse } from "@/lib/courses/depth";
-import { descriptionExcerpt, formatDuration, formatTimestamp } from "@/lib/courses/youtube-meta";
+import { descriptionExcerpt, formatTimestamp } from "@/lib/courses/youtube-meta";
+import { buildQuickAnswer, courseDateModified, courseThumbnailUrl } from "@/lib/courses/quick-answer";
 import { AI_LEVEL_LABEL } from "@/lib/courses/ai-content";
 import { recommendationRank, resolveRelated } from "@/lib/courses/ai-analysis";
 import { getGuide, guidesForCategory } from "@/lib/editorial/guides";
@@ -19,6 +20,7 @@ import {
   VerdictSection,
 } from "@/components/courses/CourseAnalysisSections";
 import { VerdictBadge } from "@/components/courses/VerdictBadge";
+import { QuickAnswer } from "@/components/courses/QuickAnswer";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { OutboundCourseLink } from "@/components/courses/OutboundCourseLink";
 import { PlatformStamp } from "@/components/courses/PlatformStamp";
@@ -92,23 +94,8 @@ export default async function CoursePage({
   ].filter((g): g is NonNullable<typeof g> => Boolean(g));
   const platformLabel = course.platform === "youtube" ? "YouTube" : "Udemy";
 
-  const facts: { label: string; value: string }[] = [
-    { label: "Plataforma", value: platformLabel },
-    ...(course.aiLevel ? [{ label: "Nivel", value: AI_LEVEL_LABEL[course.aiLevel] }] : []),
-    ...(course.author ? [{ label: "Autor", value: course.author }] : []),
-    ...(course.durationSeconds
-      ? [{ label: "Duración", value: formatDuration(course.durationSeconds) }]
-      : []),
-    ...(course.lessonCount
-      ? [{ label: course.platform === "youtube" && !course.youtube?.playlistId ? "Capítulos" : "Lecciones", value: String(course.lessonCount) }]
-      : []),
-    ...(course.publishedAt
-      ? [{ label: "Publicado", value: course.publishedAt.slice(0, 4) }]
-      : []),
-    ...(analysis?.studyPlan.weeks
-      ? [{ label: "Plan sugerido", value: `${analysis.studyPlan.weeks} sem.` }]
-      : []),
-  ];
+  const quickAnswer = buildQuickAnswer(course, categoryName);
+  const thumbnailUrl = courseThumbnailUrl(course);
 
   const courseJsonLd = {
     "@context": "https://schema.org",
@@ -121,6 +108,9 @@ export default async function CoursePage({
     },
     url: courseUrl,
     inLanguage: "es",
+    ...(course.publishedAt && { datePublished: course.publishedAt }),
+    dateModified: courseDateModified(course),
+    ...(thumbnailUrl && { image: thumbnailUrl }),
     ...(course.author && { author: { "@type": "Person", name: course.author } }),
     ...(course.aiLevel && { educationalLevel: AI_LEVEL_LABEL[course.aiLevel] }),
     ...(analysis && {
@@ -204,14 +194,7 @@ export default async function CoursePage({
         <OutboundCourseLink course={course} />
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 border border-rule bg-card p-6 sm:grid-cols-3">
-        {facts.map((fact) => (
-          <div key={fact.label} className="flex flex-col gap-1">
-            <dt className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">{fact.label}</dt>
-            <dd className="font-serif text-lg text-ink">{fact.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <QuickAnswer answer={quickAnswer} />
 
       {analysis && (
         <nav aria-label="En esta ficha" className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink-muted">

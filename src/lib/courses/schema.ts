@@ -46,6 +46,10 @@ export const courseRecordSchema = z
     aiLevel: z.enum(["principiante", "intermedio", "avanzado"]).optional(),
     // Rich editorial analysis (src/lib/courses/ai-analysis.ts).
     aiAnalysis: courseAnalysisSchema.optional(),
+    // Row timestamps (ISO), read-only — set by the database, never by
+    // ingestion. Feed `dateModified` in JSON-LD and sitemap `lastModified`.
+    aiAnalyzedAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
     // Exactly one of videoId/playlistId — a single long-form video
     // (freeCodeCamp-style), or a playlist-shaped course (e.g. midudev's
     // live-stream-collection courses, which don't exist as one video).

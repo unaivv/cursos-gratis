@@ -7,6 +7,7 @@ const DESCRIPTION = "Qué datos recoge cursos.unaividal.com y cómo se usan.";
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: "/privacidad" },
   openGraph: { title: TITLE, description: DESCRIPTION },
   twitter: { title: TITLE, description: DESCRIPTION },
 };

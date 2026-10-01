@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { readAllCourses, readCategories } from "@/lib/courses/read";
 import { catalogNumber } from "@/lib/courses/catalog-number";
@@ -52,6 +53,12 @@ const STEPS = [
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
 export const dynamic = "force-dynamic";
+
+// Title/description/OG come from the root layout's defaults; the canonical
+// folds the filtered variants (?category=, ?platform=, ?todos=) into "/".
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Home({
   searchParams,

@@ -16,6 +16,11 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // A search-results page: every `?q=` would otherwise be its own thin,
+    // near-duplicate URL. Kept out of the index (links still followed) and
+    // out of the sitemap; categories and course pages are what gets indexed.
+    alternates: { canonical: "/buscar" },
+    robots: { index: false, follow: true },
     openGraph: { title, description },
     twitter: { title, description },
   };

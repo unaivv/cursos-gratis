@@ -50,6 +50,13 @@ describe("toCourseRecord", () => {
     expect(record.author).toBe("Jane Doe");
   });
 
+  it("maps row timestamps to ISO strings", () => {
+    const record = toCourseRecord({ ...baseRow, aiAnalyzedAt: new Date("2026-02-03T04:05:06Z") });
+    expect(record.aiAnalyzedAt).toBe("2026-02-03T04:05:06.000Z");
+    expect(record.updatedAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(toCourseRecord(baseRow).aiAnalyzedAt).toBeUndefined();
+  });
+
   it("maps enrichment columns, dropping nulls and empty chapter lists", () => {
     const bare = toCourseRecord({ ...baseRow, chapters: [] });
     expect(bare.chapters).toBeUndefined();

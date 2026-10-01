@@ -6,10 +6,12 @@ import { CATEGORY_ICON } from "@/lib/courses/category-icons";
 import { filterCourses } from "@/lib/courses/filters";
 import { getParamValues, clearParamsHref } from "@/lib/courses/query-params";
 import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
-import { GUIDE_KIND_LABEL, guidesForCategory } from "@/lib/editorial/guides";
+import { GUIDE_KIND_LABEL, guideForCategory, guidesForCategory } from "@/lib/editorial/guides";
 import { recommendationRank } from "@/lib/courses/ai-analysis";
+import { buildCategoryFaq, faqAnswerText } from "@/lib/courses/category-faq";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { FilterPills } from "@/components/courses/FilterPills";
+import { CategoryFaqSection } from "@/components/courses/CategoryFaqSection";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_URL } from "@/lib/site";
 
@@ -69,6 +71,15 @@ export default async function CategoryPage({
   // Best-rated first, then the rest in catalog order.
   const sortedCourses = [...courses].sort((a, b) => recommendationRank(b.aiAnalysis) - recommendationRank(a.aiAnalysis));
 
+  // Generated from the whole category (never the filtered list), so the
+  // visible FAQ and its JSON-LD stay the same whatever the filter.
+  const startGuide = guideForCategory(category.slug);
+  const faq = buildCategoryFaq({
+    categoryName: category.name,
+    courses: allInCategory,
+    startGuide: startGuide?.kind === "ruta" ? startGuide : undefined,
+  });
+
   const platformCounts = { youtube: 0, udemy: 0 };
   for (const course of allInCategory) platformCounts[course.platform]++;
   const platformOptions = [
@@ -101,10 +112,21 @@ export default async function CategoryPage({
     },
   };
 
+  const faqJsonLd = faq.length > 0 && {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: faqAnswerText(item.answer) },
+    })),
+  };
+
   return (
     <main className="flex flex-1 flex-col">
       <JsonLd data={breadcrumbJsonLd} />
       <JsonLd data={collectionJsonLd} />
+      {faqJsonLd && <JsonLd data={faqJsonLd} />}
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 border-b border-rule px-6 py-6">
         <Link href="/" className="w-fit font-mono text-xs text-ink-muted hover:text-ink">
           ← todas las categorías
@@ -252,6 +274,12 @@ export default async function CategoryPage({
               .
             </p>
           </div>
+        </section>
+      )}
+
+      {faq.length > 0 && (
+        <section className="mx-auto w-full max-w-5xl border-t border-rule px-6 py-12">
+          <CategoryFaqSection items={faq} />
         </section>
       )}
     </main>

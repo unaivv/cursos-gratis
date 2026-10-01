@@ -45,6 +45,8 @@ export function toCourseRecord(row: CourseRow): CourseRecord {
     aiHighlights: row.aiHighlights?.length ? row.aiHighlights : undefined,
     aiLevel: row.aiLevel ?? undefined,
     aiAnalysis: parseAnalysis(row.aiAnalysis) ?? undefined,
+    aiAnalyzedAt: row.aiAnalyzedAt?.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
     youtube:
       (row.youtubeVideoId || row.youtubePlaylistId) && row.youtubeChannelId
         ? {

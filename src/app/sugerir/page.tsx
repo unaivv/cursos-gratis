@@ -8,6 +8,7 @@ const DESCRIPTION = "Propón un curso gratis de YouTube o Udemy para el catálog
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: "/sugerir" },
   openGraph: { title: TITLE, description: DESCRIPTION },
   twitter: { title: TITLE, description: DESCRIPTION },
 };
