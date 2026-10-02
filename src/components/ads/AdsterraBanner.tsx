@@ -10,8 +10,7 @@ import {
   ADSTERRA_BANNERS,
   ADSTERRA_DISABLED,
   LEADERBOARD_MEDIA_QUERY,
-  bannerSrcDoc,
-  type AdsterraBannerUnit,
+  type AdsterraBannerName,
 } from "./adsterra";
 
 /**
@@ -27,19 +26,17 @@ export function useAdsterraAllowed(): boolean {
   return !ADSTERRA_DISABLED && consent === "granted";
 }
 
-// Sandbox without allow-same-origin: a srcDoc iframe would otherwise share
-// this site's origin and its scripts could reach the parent page (or drop
-// the sandbox). allow-popups(-to-escape-sandbox) lets the click-through
-// open as a normal, unsandboxed tab.
-const SANDBOX = "allow-scripts allow-popups allow-popups-to-escape-sandbox";
-
 /**
- * One Adsterra iframe banner of a fixed size, isolated in its own
- * document (see bannerSrcDoc), framed as a labeled card like AdSlot.
+ * One Adsterra iframe banner of a fixed size, loaded from its own page on
+ * this domain (/ad-frame/[unit] — Adsterra serves nothing to a sandboxed
+ * srcDoc frame), framed as a labeled card like AdSlot. Not sandboxed: the
+ * frame is same-origin by necessity, and the native unit already runs
+ * Adsterra's script in the main page anyway.
  */
-export function AdsterraBanner({ unit, className = "" }: { unit: AdsterraBannerUnit; className?: string }) {
+export function AdsterraBanner({ name, className = "" }: { name: AdsterraBannerName; className?: string }) {
   const allowed = useAdsterraAllowed();
   if (!allowed) return null;
+  const unit = ADSTERRA_BANNERS[name];
 
   return (
     <aside aria-label="Publicidad" className={`flex justify-center ${className}`}>
@@ -47,8 +44,7 @@ export function AdsterraBanner({ unit, className = "" }: { unit: AdsterraBannerU
         <span className="mb-2 block font-mono text-[10px] text-ink-muted">Publicidad</span>
         <iframe
           title="Publicidad"
-          srcDoc={bannerSrcDoc(unit)}
-          sandbox={SANDBOX}
+          src={`/ad-frame/${name}`}
           width={unit.width}
           height={unit.height}
           loading="lazy"
@@ -83,8 +79,8 @@ export function AdsterraLeaderboard({ className = "" }: { className?: string }) 
   // Below the breakpoint the 320x50 card bleeds into the px-6 gutter so it
   // fits 360px-wide phones.
   return wide ? (
-    <AdsterraBanner key="leaderboard" unit={ADSTERRA_BANNERS.leaderboard} className={className} />
+    <AdsterraBanner key="leaderboard" name="leaderboard" className={className} />
   ) : (
-    <AdsterraBanner key="mobile" unit={ADSTERRA_BANNERS.mobileLeaderboard} className={`-mx-6 sm:mx-0 ${className}`} />
+    <AdsterraBanner key="mobile" name="mobileLeaderboard" className={`-mx-6 sm:mx-0 ${className}`} />
   );
 }

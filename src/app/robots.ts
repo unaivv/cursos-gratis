@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 
 // Private areas — nothing there is public content.
-const DISALLOW = ["/admin", "/api/"];
+const DISALLOW = ["/admin", "/api/", "/ad-frame/"];
 
 // AI search/answer crawlers, named explicitly so the intent is clear:
 // citing this catalog in AI answers is welcome. A crawler that matches a

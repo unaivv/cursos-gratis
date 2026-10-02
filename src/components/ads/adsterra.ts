@@ -35,13 +35,20 @@ export const ADSTERRA_NATIVE = {
   scriptSrc: `${NATIVE_HOST}/${NATIVE_KEY}/invoke.js`,
 };
 
+export type AdsterraBannerName = keyof typeof ADSTERRA_BANNERS;
+
+export function isAdsterraBannerName(name: string): name is AdsterraBannerName {
+  return Object.hasOwn(ADSTERRA_BANNERS, name);
+}
+
 /**
- * Standalone HTML document for one iframe banner. Adsterra's snippet reads
- * a global `atOptions`, so two banners in the same window would clash —
- * each one gets its own document (iframe `srcDoc`) instead. `<base
- * target="_blank">` keeps click-throughs in a new tab.
+ * Standalone HTML document for one iframe banner (served at
+ * /ad-frame/[unit]). Adsterra's snippet reads a global `atOptions`, so two
+ * banners in the same window would clash — each one gets its own
+ * document instead. `<base target="_blank">` keeps click-throughs in a
+ * new tab.
  */
-export function bannerSrcDoc(unit: AdsterraBannerUnit): string {
+export function bannerDocument(unit: AdsterraBannerUnit): string {
   const options = JSON.stringify({
     key: unit.key,
     format: "iframe",

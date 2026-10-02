@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ADSTERRA_BANNERS, bannerSrcDoc } from "./adsterra";
+import { ADSTERRA_BANNERS, bannerDocument } from "./adsterra";
 
-describe("bannerSrcDoc", () => {
+describe("bannerDocument", () => {
   it("sets this unit's atOptions before loading its invoke.js", () => {
-    const html = bannerSrcDoc(ADSTERRA_BANNERS.rectangle);
+    const html = bannerDocument(ADSTERRA_BANNERS.rectangle);
     const options = html.indexOf(
       'atOptions = {"key":"5df471103f0965219b5444434fa2a15d","format":"iframe","height":250,"width":300,"params":{}};'
     );
@@ -15,6 +15,6 @@ describe("bannerSrcDoc", () => {
   });
 
   it("opens click-throughs in a new tab", () => {
-    expect(bannerSrcDoc(ADSTERRA_BANNERS.leaderboard)).toContain('<base target="_blank">');
+    expect(bannerDocument(ADSTERRA_BANNERS.leaderboard)).toContain('<base target="_blank">');
   });
 });

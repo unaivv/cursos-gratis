@@ -28,7 +28,6 @@ import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
-import { ADSTERRA_BANNERS } from "@/components/ads/adsterra";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
@@ -199,7 +198,7 @@ export default async function CoursePage({
 
       <QuickAnswer answer={quickAnswer} />
 
-      <AdsterraBanner unit={ADSTERRA_BANNERS.rectangle} />
+      <AdsterraBanner name="rectangle" />
 
       {analysis && (
         <nav aria-label="En esta ficha" className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink-muted">
