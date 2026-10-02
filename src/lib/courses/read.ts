@@ -21,6 +21,12 @@ import { parseAnalysis } from "./ai-analysis";
  * cache-invalidation fragility. The public pages are also no longer
  * pre-rendered via `generateStaticParams` for the same reason (a new/
  * newly-published course must show up without a rebuild).
+ *
+ * Exception: the full published catalog (readAllCourses) is memoized
+ * in-process for CATALOG_TTL_MS. Every public page and the sitemap/llms.txt
+ * need it, and at ~2k courses with their analyses a fresh read per
+ * request (several per course page) blew the server's memory under
+ * crawler traffic. Admin changes therefore show up within that window.
  */
 
 export function toCourseRecord(row: CourseRow): CourseRecord {
@@ -58,13 +64,28 @@ export function toCourseRecord(row: CourseRow): CourseRecord {
   };
 }
 
-export async function readAllCourses(): Promise<CourseRecord[]> {
+const CATALOG_TTL_MS = 60_000;
+let catalogCache: { at: number; promise: Promise<CourseRecord[]> } | null = null;
+
+async function queryAllCourses(): Promise<CourseRecord[]> {
   const rows = await db
     .select()
     .from(coursesTable)
     .where(eq(coursesTable.status, "published"))
     .orderBy(asc(coursesTable.slug));
   return rows.map(toCourseRecord);
+}
+
+export function readAllCourses(): Promise<CourseRecord[]> {
+  // Concurrent requests share the in-flight query; a failed query is not cached.
+  if (!catalogCache || Date.now() - catalogCache.at > CATALOG_TTL_MS) {
+    const promise = queryAllCourses();
+    catalogCache = { at: Date.now(), promise };
+    promise.catch(() => {
+      if (catalogCache?.promise === promise) catalogCache = null;
+    });
+  }
+  return catalogCache.promise;
 }
 
 export async function readCategories(): Promise<Category[]> {
