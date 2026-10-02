@@ -13,6 +13,7 @@ import { CourseCard } from "@/components/courses/CourseCard";
 import { FilterPills } from "@/components/courses/FilterPills";
 import { CategoryFaqSection } from "@/components/courses/CategoryFaqSection";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
@@ -218,6 +219,8 @@ export default async function CategoryPage({
             </div>
           </section>
         )}
+
+        <AdsterraLeaderboard className="mb-8" />
 
         <div className="mb-6 flex items-baseline justify-between gap-4">
           <h2 className="font-serif text-2xl text-ink">Todas las fichas</h2>

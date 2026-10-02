@@ -58,8 +58,9 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="font-serif text-xl text-ink">Publicidad</h2>
           <p>
-            Este sitio puede mostrar anuncios servidos por The Moneytizer (Azerion) y Google
-            AdSense. El aviso de privacidad que aparece al entrar es una plataforma de
+            Este sitio puede mostrar anuncios servidos por The Moneytizer (Azerion), Google
+            AdSense y Adsterra. Los anuncios de Adsterra solo se cargan si aceptas en el aviso de
+            privacidad; si lo rechazas, no se muestran. El aviso de privacidad que aparece al entrar es una plataforma de
             consentimiento certificada por IAB Europe (TCF): ahí decides, por finalidad y por
             socio, si los anuncios se personalizan según tu navegación, y puedes cambiar tu
             elección en cualquier momento. También puedes gestionar las preferencias de Google en{" "}

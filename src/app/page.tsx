@@ -12,6 +12,7 @@ import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
 import { VerdictBadge } from "@/components/courses/VerdictBadge";
 import { GUIDES, guidesByKind, readingMinutes } from "@/lib/editorial/guides";
 import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
@@ -243,8 +244,9 @@ export default async function Home({
         )}
       </section>
 
-      <div className="mx-auto w-full max-w-5xl px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6">
         <AdSlot slotId={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME} />
+        <AdsterraLeaderboard />
       </div>
 
       {!showAll && (

@@ -26,6 +26,9 @@ import { OutboundCourseLink } from "@/components/courses/OutboundCourseLink";
 import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
+import { ADSTERRA_BANNERS } from "@/components/ads/adsterra";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
@@ -196,6 +199,8 @@ export default async function CoursePage({
 
       <QuickAnswer answer={quickAnswer} />
 
+      <AdsterraBanner unit={ADSTERRA_BANNERS.rectangle} />
+
       {analysis && (
         <nav aria-label="En esta ficha" className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink-muted">
           <span>En esta ficha:</span>
@@ -355,6 +360,9 @@ export default async function CoursePage({
           </div>
         </section>
       )}
+
+      {/* Last thing on the page, after the editorial content and related courses. */}
+      <AdsterraNativeBanner />
     </main>
   );
 }
