@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GUIDE_KIND_LABEL, guidesByKind, readingMinutes, type Guide, type GuideKind } from "@/lib/editorial/guides";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { Fragment } from "react";
 import { SITE_URL } from "@/lib/site";
 
 // The layout's SiteFooter reads categories from the DB — see como-verificamos.
@@ -103,23 +105,29 @@ export default function GuidesIndexPage() {
         </nav>
       </div>
 
-      {groups.map((group) => (
-        <section key={group.id} aria-labelledby={group.id} className="flex flex-col gap-5">
-          <div className="flex max-w-2xl flex-col gap-2">
-            <span className="text-sm text-stamp-red">{GUIDE_KIND_LABEL[group.kind]}</span>
-            <h2 id={group.id} className="scroll-mt-24 font-serif text-2xl text-ink">
-              {group.heading}
-            </h2>
-            <p className="text-ink-muted">{group.intro}</p>
-          </div>
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {group.guides.map((guide) => (
-              <li key={guide.slug}>
-                <GuideCard guide={guide} />
-              </li>
-            ))}
-          </ul>
-        </section>
+      <AdsterraLeaderboard />
+
+      {groups.map((group, index) => (
+        <Fragment key={group.id}>
+          {/* Mid-page unit after the first (longest) group. */}
+          {index === 1 && <AdsterraLeaderboard />}
+          <section aria-labelledby={group.id} className="flex flex-col gap-5">
+            <div className="flex max-w-2xl flex-col gap-2">
+              <span className="text-sm text-stamp-red">{GUIDE_KIND_LABEL[group.kind]}</span>
+              <h2 id={group.id} className="scroll-mt-24 font-serif text-2xl text-ink">
+                {group.heading}
+              </h2>
+              <p className="text-ink-muted">{group.intro}</p>
+            </div>
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {group.guides.map((guide) => (
+                <li key={guide.slug}>
+                  <GuideCard guide={guide} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        </Fragment>
       ))}
     </main>
   );

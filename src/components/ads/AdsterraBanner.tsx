@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import {
   getConsentServerSnapshot,
   getConsentSnapshot,
@@ -83,4 +83,16 @@ export function AdsterraLeaderboard({ className = "" }: { className?: string }) 
   ) : (
     <AdsterraBanner key="mobile" name="mobileLeaderboard" className={`-mx-6 sm:mx-0 ${className}`} />
   );
+}
+
+/**
+ * Layout wrapper for ad units placed between page sections that carry
+ * their own container/spacing (e.g. `mx-auto max-w-5xl px-6 pb-12`).
+ * Renders nothing until ads are allowed, so visitors without consent
+ * don't get an empty padded gap where the unit would be.
+ */
+export function AdsterraBand({ className, children }: { className: string; children: ReactNode }) {
+  const allowed = useAdsterraAllowed();
+  if (!allowed) return null;
+  return <div className={className}>{children}</div>;
 }

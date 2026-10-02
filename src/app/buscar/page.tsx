@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { readAllCourses, searchCourses } from "@/lib/courses/read";
 import { logSearchQuery } from "@/lib/courses/popular-searches";
 import { CourseCard } from "@/components/courses/CourseCard";
+import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { IN_FEED_AD_EVERY } from "@/components/ads/adsterra";
+import { interleaveAds } from "@/components/ads/interleave";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +80,8 @@ export default async function SearchPage({
         </div>
       </form>
 
+      <AdsterraLeaderboard />
+
       {query && (
         <p className="font-mono text-xs text-ink-muted">
           {results.length} resultado{results.length === 1 ? "" : "s"} para
@@ -92,13 +97,17 @@ export default async function SearchPage({
 
       {results.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((course) => (
-            <CourseCard
-              key={`${course.platform}-${course.slug}`}
-              course={course}
-              categorySlugs={slugsByCategory.get(course.category) ?? []}
-            />
-          ))}
+          {interleaveAds(results, IN_FEED_AD_EVERY).map((entry) =>
+            entry.type === "ad" ? (
+              <AdsterraLeaderboard key={`ad-${entry.slot}`} className="col-span-full" />
+            ) : (
+              <CourseCard
+                key={`${entry.item.platform}-${entry.item.slug}`}
+                course={entry.item}
+                categorySlugs={slugsByCategory.get(entry.item.category) ?? []}
+              />
+            )
+          )}
         </div>
       )}
     </main>

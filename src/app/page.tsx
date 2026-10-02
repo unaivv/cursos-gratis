@@ -12,7 +12,10 @@ import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { AdSlot } from "@/components/ads/AdSlot";
-import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { AdsterraBand, AdsterraBanner, AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
+import { IN_FEED_AD_EVERY } from "@/components/ads/adsterra";
+import { interleaveAds } from "@/components/ads/interleave";
 import { VerdictBadge } from "@/components/courses/VerdictBadge";
 import { GUIDES, guidesByKind, readingMinutes } from "@/lib/editorial/guides";
 import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
@@ -316,6 +319,10 @@ export default async function Home({
             </section>
           )}
 
+          <AdsterraBand className="mx-auto w-full max-w-5xl px-6 pb-12">
+            <AdsterraLeaderboard />
+          </AdsterraBand>
+
           <section aria-labelledby="categories-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
             <h2 id="categories-heading" className="mb-6 font-serif text-2xl text-ink">
               Explora por materia
@@ -347,6 +354,10 @@ export default async function Home({
               })}
             </ul>
           </section>
+
+          <AdsterraBand className="mx-auto w-full max-w-5xl px-6 pb-12">
+            <AdsterraBanner name="rectangle" />
+          </AdsterraBand>
 
           <section aria-labelledby="method-heading" className="mx-auto w-full max-w-5xl px-6 pb-12">
             <div className="mb-2 flex items-baseline justify-between gap-4">
@@ -432,13 +443,17 @@ export default async function Home({
           <p className="text-ink-muted">Ningún curso coincide con estos filtros.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleCourses.map((course) => (
-              <CourseCard
-                key={`${course.platform}-${course.slug}`}
-                course={course}
-                categorySlugs={slugsByCategory.get(course.category) ?? []}
-              />
-            ))}
+            {interleaveAds(visibleCourses, IN_FEED_AD_EVERY).map((entry) =>
+              entry.type === "ad" ? (
+                <AdsterraLeaderboard key={`ad-${entry.slot}`} className="col-span-full" />
+              ) : (
+                <CourseCard
+                  key={`${entry.item.platform}-${entry.item.slug}`}
+                  course={entry.item}
+                  categorySlugs={slugsByCategory.get(entry.item.category) ?? []}
+                />
+              )
+            )}
           </div>
         )}
 
@@ -453,6 +468,11 @@ export default async function Home({
           </div>
         )}
       </section>
+
+      <AdsterraBand className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 pb-12">
+        <AdsterraLeaderboard />
+        <AdsterraNativeBanner />
+      </AdsterraBand>
 
       <section aria-labelledby="how-heading" className="mx-auto w-full max-w-5xl px-6 pb-16">
         <div className="flex flex-col gap-6 border border-rule bg-card p-8">

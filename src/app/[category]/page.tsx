@@ -13,7 +13,10 @@ import { CourseCard } from "@/components/courses/CourseCard";
 import { FilterPills } from "@/components/courses/FilterPills";
 import { CategoryFaqSection } from "@/components/courses/CategoryFaqSection";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { AdsterraBand, AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
+import { IN_FEED_AD_EVERY } from "@/components/ads/adsterra";
+import { interleaveAds } from "@/components/ads/interleave";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic, not pre-rendered — see src/lib/courses/read.ts for why.
@@ -237,15 +240,21 @@ export default async function CategoryPage({
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedCourses.map((course) => (
-              <CourseCard
-                key={`${course.platform}-${course.slug}`}
-                course={course}
-                categorySlugs={categorySlugs}
-              />
-            ))}
+            {interleaveAds(sortedCourses, IN_FEED_AD_EVERY).map((entry) =>
+              entry.type === "ad" ? (
+                <AdsterraLeaderboard key={`ad-${entry.slot}`} className="col-span-full" />
+              ) : (
+                <CourseCard
+                  key={`${entry.item.platform}-${entry.item.slug}`}
+                  course={entry.item}
+                  categorySlugs={categorySlugs}
+                />
+              )
+            )}
           </div>
         )}
+
+        {courses.length > 0 && <AdsterraLeaderboard className="mt-8" />}
       </section>
 
       {editorial && (
@@ -285,6 +294,10 @@ export default async function CategoryPage({
           <CategoryFaqSection items={faq} />
         </section>
       )}
+
+      <AdsterraBand className="mx-auto w-full max-w-5xl px-6 pb-12">
+        <AdsterraNativeBanner />
+      </AdsterraBand>
     </main>
   );
 }

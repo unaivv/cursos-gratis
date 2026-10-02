@@ -65,3 +65,7 @@ export function bannerDocument(unit: AdsterraBannerUnit): string {
     "</body></html>",
   ].join("");
 }
+
+// In-feed spacing for course grids: a full-row ad after every 6 cards keeps
+// every row complete at 1, 2 and 3 columns.
+export const IN_FEED_AD_EVERY = 6;

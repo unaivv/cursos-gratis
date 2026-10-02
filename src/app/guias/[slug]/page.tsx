@@ -12,6 +12,9 @@ import { matchGuideCourses } from "@/lib/editorial/guide-courses";
 import { readAllCourses, readCategories } from "@/lib/courses/read";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdsterraBanner, AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
+import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
+import { Fragment } from "react";
 import { SITE_URL } from "@/lib/site";
 
 // Dynamic for the same reason as every other page — see src/lib/courses/read.ts.
@@ -109,6 +112,9 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
       }
     : null;
 
+  // Mid-article rectangle goes after this section (none for one-section guides).
+  const midSectionIndex = guide.sections.length > 1 ? Math.floor(guide.sections.length / 2) - 1 : -1;
+
   const toc = [
     ...guide.sections.map((section) => ({ id: sectionId(section.heading), label: section.heading })),
     ...(guide.faq?.length ? [{ id: "preguntas-frecuentes", label: "Preguntas frecuentes" }] : []),
@@ -150,6 +156,8 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         <p className="text-lg text-ink-muted">{guide.intro}</p>
       </div>
 
+      <AdsterraLeaderboard />
+
       {toc.length > 2 && (
         <nav aria-labelledby="toc-heading" className="border border-rule bg-card p-5">
           <h2 id="toc-heading" className="mb-3 font-mono text-[11px] uppercase tracking-wide text-ink-muted">
@@ -170,40 +178,45 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         </nav>
       )}
 
-      {guide.sections.map((section) => {
+      {guide.sections.map((section, sectionIndex) => {
         const id = sectionId(section.heading);
         const List = section.ordered ? "ol" : "ul";
         return (
-          <section key={section.heading} aria-labelledby={id} className="flex flex-col gap-4">
-            <h2 id={id} className="scroll-mt-24 font-serif text-2xl text-ink">
-              {section.heading}
-            </h2>
-            {section.paragraphs?.map((paragraph) => (
-              <p key={paragraph} className="text-ink-muted">
-                {paragraph}
-              </p>
-            ))}
-            {section.steps && (
-              <List className={`flex flex-col gap-2 pl-5 text-ink-muted ${section.ordered ? "list-decimal" : "list-disc"}`}>
-                {section.steps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </List>
-            )}
-            {section.links && section.links.length > 0 && (
-              <ul className="flex flex-col gap-1 border-l-2 border-stamp-red pl-4 text-sm">
-                {section.links.map((link) => (
-                  <li key={link.href}>
-                    <Link href={link.href} className="text-ink underline underline-offset-4 hover:text-stamp-red">
-                      {link.label} →
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <Fragment key={section.heading}>
+            <section aria-labelledby={id} className="flex flex-col gap-4">
+              <h2 id={id} className="scroll-mt-24 font-serif text-2xl text-ink">
+                {section.heading}
+              </h2>
+              {section.paragraphs?.map((paragraph) => (
+                <p key={paragraph} className="text-ink-muted">
+                  {paragraph}
+                </p>
+              ))}
+              {section.steps && (
+                <List className={`flex flex-col gap-2 pl-5 text-ink-muted ${section.ordered ? "list-decimal" : "list-disc"}`}>
+                  {section.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </List>
+              )}
+              {section.links && section.links.length > 0 && (
+                <ul className="flex flex-col gap-1 border-l-2 border-stamp-red pl-4 text-sm">
+                  {section.links.map((link) => (
+                    <li key={link.href}>
+                      <Link href={link.href} className="text-ink underline underline-offset-4 hover:text-stamp-red">
+                        {link.label} →
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            {sectionIndex === midSectionIndex && <AdsterraBanner name="rectangle" />}
+          </Fragment>
         );
       })}
+
+      <AdsterraLeaderboard />
 
       {guide.faq && guide.faq.length > 0 && (
         <section aria-labelledby="preguntas-frecuentes" className="flex flex-col gap-5 border-t border-rule pt-10">
@@ -266,6 +279,9 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           ))}
         </ul>
       </section>
+
+      {/* Last thing on the page, after the article and related guides. */}
+      <AdsterraNativeBanner />
     </main>
   );
 }

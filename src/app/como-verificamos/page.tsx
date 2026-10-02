@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
 
 // Static content, but the layout's SiteFooter does a live DB read (the
 // category list) — force-dynamic like every other route so that query
@@ -89,6 +90,8 @@ export default function MethodologyPage() {
           inventar. Esta página explica cómo se cumple cada una.
         </p>
       </div>
+
+      <AdsterraLeaderboard />
 
       <div className="flex flex-col gap-4">
         <h2 className="font-serif text-xl text-ink">El proceso</h2>

@@ -26,7 +26,7 @@ import { OutboundCourseLink } from "@/components/courses/OutboundCourseLink";
 import { PlatformStamp } from "@/components/courses/PlatformStamp";
 import { VerifiedBadge } from "@/components/courses/VerifiedBadge";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
+import { AdsterraBanner, AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
 import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
 import { SITE_URL } from "@/lib/site";
 
@@ -196,6 +196,8 @@ export default async function CoursePage({
         <OutboundCourseLink course={course} />
       </div>
 
+      <AdsterraLeaderboard />
+
       <QuickAnswer answer={quickAnswer} />
 
       <AdsterraBanner name="rectangle" />
@@ -247,6 +249,9 @@ export default async function CoursePage({
           ))}
         </section>
       )}
+
+      {/* Mid-page break: after the verdict/audience block, before the syllabus. */}
+      {analysis && <AdsterraBanner name="rectangle" />}
 
       {(chapters.length > 0 || (analysis?.syllabus.length ?? 0) > 0) && (
         <section aria-labelledby="estructura" className="flex scroll-mt-24 flex-col gap-4">
@@ -313,6 +318,8 @@ export default async function CoursePage({
         </section>
       )}
 
+      {analysis && <AdsterraLeaderboard />}
+
       {analysis && <FaqSection faq={analysis.faq} />}
 
       {analysis && (
@@ -346,6 +353,8 @@ export default async function CoursePage({
           </ul>
         </section>
       )}
+
+      <AdsterraLeaderboard />
 
       {related.length > 0 && (
         <section aria-labelledby="related" className="flex flex-col gap-4">

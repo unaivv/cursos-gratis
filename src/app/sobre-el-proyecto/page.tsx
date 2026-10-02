@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
 import { SITE_URL } from "@/lib/site";
 
 // The layout's SiteFooter reads categories from the DB — see como-verificamos.
@@ -48,6 +49,8 @@ export default function AboutPage() {
           mucho que hay, cursos completos que de verdad no cuestan dinero.
         </p>
       </div>
+
+      <AdsterraLeaderboard />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-serif text-xl text-ink">Por qué existe</h2>
