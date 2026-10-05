@@ -120,7 +120,7 @@ export default async function CoursePage({
       ...(analysis.prerequisites.length > 0 && { coursePrerequisites: analysis.prerequisites }),
       review: {
         "@type": "Review",
-        author: { "@type": "Organization", name: "cursos.unaividal.com", url: SITE_URL },
+        author: { "@type": "Organization", name: "cursosgratis.pro", url: SITE_URL },
         reviewBody: analysis.verdict.summary,
         reviewRating: { "@type": "Rating", ratingValue: analysis.verdict.score, bestRating: 5, worstRating: 1 },
       },

@@ -52,7 +52,7 @@ export async function submitSuggestion(
   }
 
   await sendAdminNotification(
-    "Nueva sugerencia de curso — cursos.unaividal.com",
+    "Nueva sugerencia de curso — cursosgratis.pro",
     `
       <p>Alguien sugirió un curso desde el formulario público.</p>
       <p><strong>URL:</strong> <a href="${escapeHtml(courseUrl)}">${escapeHtml(courseUrl)}</a></p>

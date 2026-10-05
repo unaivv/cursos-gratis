@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const TITLE = "Contacto";
 const DESCRIPTION =
-  "Cómo ponerte en contacto con quien mantiene cursos.unaividal.com: sugerencias, correcciones y dudas.";
+  "Cómo ponerte en contacto con quien mantiene cursosgratis.pro: sugerencias, correcciones y dudas.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -27,7 +27,7 @@ export default function ContactPage() {
         </Link>
         <h1 className="font-serif text-3xl text-ink">{TITLE}</h1>
         <p className="text-ink-muted">
-          cursos.unaividal.com lo mantiene una sola persona, Unai Vidal. Estas son las vías para
+          cursosgratis.pro lo mantiene una sola persona, Unai Vidal. Estas son las vías para
           escribirle, según lo que necesites.
         </p>
       </div>

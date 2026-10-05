@@ -31,7 +31,7 @@ const courierPrime = Courier_Prime({
   weight: ["400", "700"],
 });
 
-const DEFAULT_TITLE = "cursos.unaividal.com — cursos gratis verificados de YouTube y Udemy";
+const DEFAULT_TITLE = "cursosgratis.pro — cursos gratis verificados de YouTube y Udemy";
 const DEFAULT_DESCRIPTION =
   "Catálogo de cursos gratuitos de YouTube y Udemy, organizados por categoría.";
 

@@ -20,4 +20,7 @@ export const auth = betterAuth({
     enabled: true,
   },
   secret: process.env.BETTER_AUTH_SECRET,
+  // The site answers on the new domain, www, and the legacy subdomain
+  // (until it 301s); each must be allowed to post the login form.
+  trustedOrigins: ["https://cursosgratis.pro", "https://www.cursosgratis.pro", "https://cursos.unaividal.com"],
 });

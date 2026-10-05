@@ -135,7 +135,7 @@ export default async function Home({
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": ["WebSite", "CollectionPage"],
-    name: "cursos.unaividal.com",
+    name: "cursosgratis.pro",
     url: SITE_URL,
     inLanguage: "es",
     description:

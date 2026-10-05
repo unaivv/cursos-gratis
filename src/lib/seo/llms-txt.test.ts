@@ -42,7 +42,7 @@ const txt = buildLlmsTxt({
 
 describe("buildLlmsTxt", () => {
   it("follows the llmstxt.org layout: H1, blockquote summary, link sections", () => {
-    expect(txt.startsWith("# cursos.unaividal.com\n\n> ")).toBe(true);
+    expect(txt.startsWith("# cursosgratis.pro\n\n> ")).toBe(true);
     expect(txt).toContain("## Páginas clave");
     expect(txt).toContain(`- [Cómo verificamos los cursos](${SITE_URL}/como-verificamos)`);
     expect(txt).toContain("## Optional");

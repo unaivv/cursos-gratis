@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 const TITLE = "Cómo verificamos y analizamos los cursos";
 const DESCRIPTION =
-  "Cómo selecciona cursos.unaividal.com cada curso, cómo comprueba que sigue siendo gratis y cómo se elabora el análisis editorial de cada ficha.";
+  "Cómo selecciona cursosgratis.pro cada curso, cómo comprueba que sigue siendo gratis y cómo se elabora el análisis editorial de cada ficha.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -27,7 +27,7 @@ const FAQ = [
       "Solo listamos cursos completos y permanentemente gratuitos: vídeos y listas de reproducción abiertas en YouTube, y cursos de Udemy verificados manualmente como \"Gratis (sin cupón)\" — sin periodo de prueba, sin límite de tiempo. Un curso que pasa a ser de pago se retira del catálogo, no se marca como \"antes gratis\".",
   },
   {
-    question: "¿Hace falta crear una cuenta o pagar algo en cursos.unaividal.com?",
+    question: "¿Hace falta crear una cuenta o pagar algo en cursosgratis.pro?",
     answer:
       "No. El sitio no aloja ningún curso ni pide registro — cada ficha enlaza directamente a la clase original en YouTube o Udemy, donde sí puede pedirte una cuenta gratuita de esa plataforma para verlo.",
   },
@@ -84,7 +84,7 @@ export default function MethodologyPage() {
         </Link>
         <h1 className="font-serif text-3xl text-ink">{TITLE}</h1>
         <p className="text-ink-muted">
-          cursos.unaividal.com no aloja ningún curso: cataloga clases gratuitas que ya existen en
+          cursosgratis.pro no aloja ningún curso: cataloga clases gratuitas que ya existen en
           YouTube y Udemy, y enlaza a la fuente original. Promete dos cosas: que lo que enlaza sigue
           siendo gratis, y que el análisis de cada ficha se basa en lo que el curso publica, sin
           inventar. Esta página explica cómo se cumple cada una.

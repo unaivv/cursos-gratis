@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 const TITLE = "Política de privacidad";
-const DESCRIPTION = "Qué datos recoge cursos.unaividal.com y cómo se usan.";
+const DESCRIPTION = "Qué datos recoge cursosgratis.pro y cómo se usan.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="font-serif text-xl text-ink">Qué es este sitio</h2>
           <p>
-            cursos.unaividal.com es un catálogo de cursos gratuitos de YouTube y Udemy. No
+            cursosgratis.pro es un catálogo de cursos gratuitos de YouTube y Udemy. No
             aloja ningún curso — cada ficha enlaza a la plataforma original. Es un proyecto
             personal de Unai Vidal (<a href="https://unaividal.com" className="underline underline-offset-2 hover:text-ink">unaividal.com</a>).
           </p>

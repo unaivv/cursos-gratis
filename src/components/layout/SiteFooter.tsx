@@ -74,7 +74,7 @@ export async function SiteFooter() {
           <div className="flex flex-col gap-1">
             <span className="font-serif text-lg font-bold tracking-tight text-ink">cursos.</span>
             <p className="max-w-sm font-mono text-xs text-ink-muted">
-              © {year} cursos.unaividal.com — catálogo curado y verificado por Unai Vidal.
+              © {year} cursosgratis.pro — catálogo curado y verificado por Unai Vidal.
               Enlazamos a YouTube y Udemy, no alojamos contenido.
             </p>
           </div>

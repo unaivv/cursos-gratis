@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const TITLE = "Sobre el proyecto";
 const DESCRIPTION =
-  "Quién mantiene cursos.unaividal.com, por qué existe, cómo se elige lo que se publica y cómo se financia.";
+  "Quién mantiene cursosgratis.pro, por qué existe, cómo se elige lo que se publica y cómo se financia.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -26,7 +26,7 @@ const aboutJsonLd = {
   url: `${SITE_URL}/sobre-el-proyecto`,
   about: {
     "@type": "WebSite",
-    name: "cursos.unaividal.com",
+    name: "cursosgratis.pro",
     url: SITE_URL,
     author: { "@type": "Person", name: "Unai Vidal", url: "https://unaividal.com" },
   },
@@ -43,7 +43,7 @@ export default function AboutPage() {
         </Link>
         <h1 className="font-serif text-3xl text-ink">{TITLE}</h1>
         <p className="text-ink-muted">
-          cursos.unaividal.com es un catálogo independiente de cursos gratuitos de YouTube y
+          cursosgratis.pro es un catálogo independiente de cursos gratuitos de YouTube y
           Udemy, mantenido por Unai Vidal. No es una plataforma de
           formación: no aloja cursos ni vende nada. Su trabajo es ayudarte a encontrar, entre lo
           mucho que hay, cursos completos que de verdad no cuestan dinero.
