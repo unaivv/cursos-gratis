@@ -64,6 +64,13 @@
       "when": 1790749505754,
       "tag": "0008_course_ai_analysis",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791358387127,
+      "tag": "0009_enable_rls",
+      "breakpoints": true
     }
   ]
 }
