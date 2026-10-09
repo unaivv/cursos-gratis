@@ -18,5 +18,6 @@ describe("canonicalRedirect", () => {
     expect(canonicalRedirect("localhost:3000", "/", "")).toBeNull();
     expect(canonicalRedirect(null, "/", "")).toBeNull();
     expect(canonicalRedirect("cursos.unaividal.com", "/ads.txt", "")).toBeNull();
+    expect(canonicalRedirect("cursos.unaividal.com", "/BingSiteAuth.xml", "")).toBeNull();
   });
 });
