@@ -4,7 +4,7 @@ import { SITE_URL } from "@/lib/site";
  * IndexNow (Bing, Yandex, Seznam…; ChatGPT search reads Bing's index):
  * notifies search engines of new/changed URLs instead of waiting for a
  * crawl. The key is public by design — it is served at
- * `${SITE_URL}/${INDEXNOW_KEY}.txt` (public/) to prove site ownership.
+ * `${SITE_URL}/${INDEXNOW_KEY}.txt` (app route) to prove site ownership.
  */
 export const INDEXNOW_KEY = "5b1d87183b041cde269a4693e29fdf41";
 export const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
