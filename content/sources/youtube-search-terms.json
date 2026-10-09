@@ -10,5 +10,13 @@
   { "query": "curso completo de inglés", "category": "languages" },
   { "query": "curso completo de marketing digital", "category": "marketing" },
   { "query": "curso completo de emprendimiento", "category": "business" },
-  { "query": "curso completo de AutoCAD", "category": "engineering" }
+  { "query": "curso completo de AutoCAD", "category": "engineering" },
+  { "query": "curso completo de Claude Code", "category": "programming" },
+  { "query": "curso programar con IA Cursor", "category": "programming" },
+  { "query": "curso completo de Unity", "category": "programming" },
+  { "query": "curso completo de ciberseguridad", "category": "programming" },
+  { "query": "curso completo de SEO", "category": "marketing" },
+  { "query": "curso completo de Amazon KDP", "category": "business" },
+  { "query": "curso de primeros auxilios", "category": "wellness" },
+  { "query": "curso completo de Revit", "category": "engineering" }
 ]

@@ -25,7 +25,7 @@ chance) can surface.
 
 Kept deliberately separate from the channel sync: `search.list` costs
 100 quota units/call vs. ~1 for `channels.list`/`playlistItems.list`, so
-it's a short fixed term list (~12 today, one call each) rather than
+it's a short fixed term list (~20 today, one call each) rather than
 something that scales with the catalog. The only quality filter is
 `videoDuration: long` (>20 min) — search results are noisier than a
 curated channel by nature, so review these more carefully than

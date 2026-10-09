@@ -67,7 +67,7 @@ export default async function SearchPage({
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="título, autor o categoría…"
+            placeholder="tema, título, autor o categoría…"
             autoFocus
             className="flex-1 border border-rule bg-card px-4 py-3 text-ink placeholder:text-ink-muted"
           />

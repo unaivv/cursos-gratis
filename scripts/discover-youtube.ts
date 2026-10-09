@@ -8,7 +8,7 @@
  * Deliberately NOT `search.list` on every run of sync-youtube.ts: that
  * endpoint costs 100 quota units/call vs. ~1 for channels.list/
  * playlistItems.list, so it's kept to its own small, fixed term list
- * (content/sources/youtube-search-terms.json) — one call per term, ~12
+ * (content/sources/youtube-search-terms.json) — one call per term, ~20
  * terms today, well under the 10,000-unit daily budget even run weekly.
  *
  * `videoDuration: long` (>20 min) is the only quality filter — it biases

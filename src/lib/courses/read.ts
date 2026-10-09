@@ -1,8 +1,16 @@
-import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, or, sql, type AnyColumn } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { courses as coursesTable, categories as categoriesTable, type CourseRow } from "@/lib/db/schema";
 import type { Category, CourseRecord } from "./schema";
 import { parseAnalysis } from "./ai-analysis";
+import {
+  ACCENT_FROM,
+  ACCENT_TO,
+  likePatterns,
+  matchingCategorySlugs,
+  rankSearchResults,
+  searchWords,
+} from "./search";
 
 /**
  * Public reads — courses table, `published` only.
@@ -98,42 +106,43 @@ export async function getCoursesByCategory(categorySlug: string): Promise<Course
 }
 
 /**
- * Text search across title, author, and category (matched by its
- * human-readable Spanish name, not the slug — a search for "diseño"
- * should find the "design" category), case-insensitive substring match,
- * published courses only. Small catalog — a plain `ilike` query is
- * enough; revisit with full-text search if this ever grows into the
- * thousands of rows.
+ * Text search across title, author, AI summary and category (matched by
+ * its human-readable Spanish name, not the slug — a search for "diseño"
+ * should find the "design" category), published courses only. Case- and
+ * accent-insensitive; every word of a multi-word query must match some
+ * field; a few known misspellings also match (rules and tests in
+ * ./search.ts). Small catalog — a parameterized LIKE per word is enough;
+ * revisit with full-text search if it ever gets slow.
  */
 export async function searchCourses(query: string): Promise<CourseRecord[]> {
-  const q = query.trim();
-  if (!q) return [];
-  const pattern = `%${q}%`;
+  const words = searchWords(query);
+  if (words.length === 0) return [];
 
-  const matchingCategories = await db
-    .select({ slug: categoriesTable.slug })
-    .from(categoriesTable)
-    .where(ilike(categoriesTable.name, pattern));
-  const matchingCategorySlugs = matchingCategories.map((c) => c.slug);
+  const allCategories = await db
+    .select({ slug: categoriesTable.slug, name: categoriesTable.name })
+    .from(categoriesTable);
+
+  // Same lowercase + accent fold as normalizeSearchText, done in Postgres.
+  const folded = (column: AnyColumn) => sql`translate(lower(${column}), ${ACCENT_FROM}, ${ACCENT_TO})`;
+  const wordConditions = words.map((alternatives) => {
+    const categorySlugs = matchingCategorySlugs(alternatives, allCategories);
+    return or(
+      ...likePatterns(alternatives).flatMap((pattern) => [
+        sql`${folded(coursesTable.title)} like ${pattern}`,
+        sql`${folded(coursesTable.author)} like ${pattern}`,
+        sql`${folded(coursesTable.aiSummary)} like ${pattern}`,
+      ]),
+      categorySlugs.length > 0 ? inArray(coursesTable.category, categorySlugs) : undefined
+    );
+  });
 
   const rows = await db
     .select()
     .from(coursesTable)
-    .where(
-      and(
-        eq(coursesTable.status, "published"),
-        or(
-          ilike(coursesTable.title, pattern),
-          ilike(coursesTable.author, pattern),
-          matchingCategorySlugs.length > 0
-            ? inArray(coursesTable.category, matchingCategorySlugs)
-            : undefined
-        )
-      )
-    )
+    .where(and(eq(coursesTable.status, "published"), ...wordConditions))
     .orderBy(asc(coursesTable.slug));
 
-  return rows.map(toCourseRecord);
+  return rankSearchResults(rows.map(toCourseRecord), words);
 }
 
 export async function getCourseBySlug(
