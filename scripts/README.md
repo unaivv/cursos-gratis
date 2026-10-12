@@ -206,8 +206,10 @@ npm run indexnow -- --days 1                                   # then ping Index
 ```
 
 Unpublished pages drop out of the sitemap and stop being served, so search
-engines remove them on their next crawl; the IndexNow run re-submits what
-changed in the sitemap (category/home pages) so Bing & co. recrawl sooner.
+engines remove them on their next crawl. The IndexNow run only submits
+sitemap URLs whose `lastmod` is within the last day; lastmod comes from the
+remaining published courses, so it may well submit nothing after a pure
+unpublish — that's expected, not an error.
 
 ## `seed-categories.ts`, `seed-admin.ts`, `migrate-courses.ts`
 
