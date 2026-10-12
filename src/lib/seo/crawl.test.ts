@@ -3,7 +3,7 @@ import robots from "@/app/robots";
 
 type Rule = { userAgent?: string | string[]; allow?: string | string[]; disallow?: string | string[] };
 
-const list = (v: string | string[] | undefined) => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
+const list = <T,>(v: T | T[] | undefined): T[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
 
 /** Google's robots.txt path matching: `*` wildcard, trailing `$` anchor. */
 function matches(pattern: string, path: string): boolean {
@@ -21,7 +21,7 @@ function blocked(rule: Rule, path: string): boolean {
   return longest(list(rule.disallow)) > longest(list(rule.allow));
 }
 
-const rules = list(robots().rules as Rule | Rule[]) as Rule[];
+const rules = list<Rule>(robots().rules);
 const groups = {
   "*": rules.find((r) => list(r.userAgent).includes("*"))!,
   "AI crawlers": rules.find((r) => list(r.userAgent).includes("GPTBot"))!,
