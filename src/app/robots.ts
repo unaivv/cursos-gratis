@@ -1,8 +1,11 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { FILTER_QUERY_DISALLOW } from "@/lib/seo/crawl";
 
 // Private areas — nothing there is public content.
-const DISALLOW = ["/admin", "/api/", "/ad-frame/"];
+const PRIVATE = ["/admin", "/api/", "/ad-frame/"];
+
+const DISALLOW = [...PRIVATE, ...FILTER_QUERY_DISALLOW];
 
 // AI search/answer crawlers, named explicitly so the intent is clear:
 // citing this catalog in AI answers is welcome. A crawler that matches a

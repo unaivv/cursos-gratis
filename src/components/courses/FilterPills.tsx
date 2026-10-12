@@ -10,7 +10,9 @@ const PILL_INACTIVE =
 /**
  * A row of toggle pills for one multi-select filter dimension (category,
  * platform, ...). Each pill is a plain link — filtering works with JS
- * disabled, matching the site's SEO-first rendering.
+ * disabled, matching the site's SEO-first rendering. The links are
+ * `nofollow` (and disallowed in robots.ts): filter combinations are
+ * canonicalized to the plain page, so crawlers shouldn't spend budget on them.
  */
 export function FilterPills({
   basePath,
@@ -37,7 +39,12 @@ export function FilterPills({
       <ul className="flex flex-wrap gap-2">
         {allHref && (
           <li>
-            <Link href={allHref} aria-pressed={selected.size === 0} className={selected.size === 0 ? PILL_ACTIVE : PILL_INACTIVE}>
+            <Link
+              href={allHref}
+              rel={allHref.includes("?") ? "nofollow" : undefined}
+              aria-pressed={selected.size === 0}
+              className={selected.size === 0 ? PILL_ACTIVE : PILL_INACTIVE}
+            >
               Todas
             </Link>
           </li>
@@ -49,6 +56,7 @@ export function FilterPills({
             <li key={opt.value}>
               <Link
                 href={toggleParamHref(basePath, searchParams, paramKey, opt.value)}
+                rel="nofollow"
                 aria-pressed={isActive}
                 className={isActive ? PILL_ACTIVE : PILL_INACTIVE}
               >
