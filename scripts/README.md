@@ -190,6 +190,25 @@ Only enriched YouTube courses are exported: an analysis written from a
 bare title (Udemy) would be invented. `analysis` is optional in the import
 (older summary-only files still work, leaving any analysis untouched).
 
+## `curate-catalog.ts` — unpublish what slipped through
+
+One-off cleanup driven by a reviewed list in `scripts/curation/` (an array
+of `{slug, reason, title}`, default `2026-10-12-unpublish.json`). It moves
+those courses back to **pending** — never deletes, so any of them can be
+republished from `/admin` — and only touches rows that are currently
+`published` with a matching slug; anything else is listed as skipped.
+
+```bash
+DATABASE_URL=... npm run curate                                # dry run (default): prints what would change
+DATABASE_URL=... npm run curate -- --apply                     # unpublish them
+DATABASE_URL=... npm run curate -- --apply --file scripts/curation/other.json
+npm run indexnow -- --days 1                                   # then ping IndexNow
+```
+
+Unpublished pages drop out of the sitemap and stop being served, so search
+engines remove them on their next crawl; the IndexNow run re-submits what
+changed in the sitemap (category/home pages) so Bing & co. recrawl sooner.
+
 ## `seed-categories.ts`, `seed-admin.ts`, `migrate-courses.ts`
 
 One-off setup scripts — see the main README's "Base de datos" section.

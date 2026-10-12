@@ -10,6 +10,7 @@
     "test": "vitest run",
     "sync:youtube": "tsx scripts/sync-youtube.ts",
     "indexnow": "tsx scripts/indexnow-submit.ts",
+    "curate": "tsx scripts/curate-catalog.ts",
     "enrich:youtube": "tsx scripts/enrich-youtube.ts",
     "ai:export": "tsx scripts/export-course-data.ts",
     "ai:import": "tsx scripts/import-ai-content.ts",
