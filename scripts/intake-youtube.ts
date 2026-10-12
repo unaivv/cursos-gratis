@@ -5,12 +5,19 @@
  *
  *   1. dropped if we already rejected it in an earlier run,
  *   2. looked up in the YouTube API (duration, chapters, description),
- *   3. rejected outright if it is too short to be a course,
+ *   3. rejected outright if it is too short to be a course, or obviously
+ *      not in Spanish or English (no AI call for either),
  *   4. reviewed by Claude: is it a real course? if so, write the summary
- *      and the full editorial analysis shown on the course page.
+ *      and the full editorial analysis shown on the course page,
+ *   5. rejected if the review says it isn't a course, isn't taught in
+ *      Spanish/English, or scores below MIN_INTAKE_SCORE,
+ *   6. held for a human if the title is a single numbered episode of a
+ *      series ("Clase 3", "Aula 1", "#1") — maybe worth grouping.
  *
- * Approved videos are inserted as `pending` WITH their AI summary, ready
- * to approve in /admin — nothing is ever auto-published. Rejected ones are
+ * Approved videos are inserted as `pending` WITH their AI summary and
+ * listed as ready to approve in the digest; held ones are inserted as
+ * `pending` too but listed apart, so a bulk approve of the "ready" list
+ * never publishes them — nothing is ever auto-published. Rejected ones are
  * remembered in `rejected_videos` so they aren't re-reviewed every week.
  * Anything that failed to review (API error, refusal, missing video) is
  * skipped and simply retried on the next run.
@@ -26,6 +33,12 @@ import { courses as coursesTable, rejectedVideos, type NewCourseRow } from "../s
 import { escapeHtml } from "../src/lib/email/send";
 import type { CourseRecord } from "../src/lib/courses/schema";
 import { parseChapters } from "../src/lib/courses/youtube-meta";
+import {
+  MIN_INTAKE_SCORE,
+  detectUnsupportedLanguage,
+  isSeriesEpisode,
+  isSupportedLanguage,
+} from "../src/lib/courses/intake-rules";
 import {
   catalogFor,
   chapterLines,
@@ -46,11 +59,14 @@ export type Approved = {
   /** Undefined when AI review wasn't configured. */
   decision?: Extract<ReviewDecision, { isCourse: true }>;
 };
+/** Inserted as pending but kept out of the "ready to approve" list. */
+export type Held = Approved & { why: string };
 export type Rejected = { videoId: string; title: string; reason: string; source: "prefilter" | "ai" };
 export type Skipped = { videoId: string; title: string; why: string };
 
 export type IntakeResult = {
   approved: Approved[];
+  held: Held[];
   rejected: Rejected[];
   skipped: Skipped[];
   aiConfigured: boolean;
@@ -69,9 +85,17 @@ export async function decideIntake(
 ): Promise<IntakeResult> {
   const result: IntakeResult = {
     approved: [],
+    held: [],
     rejected: [],
     skipped: [],
     aiConfigured: reviewer !== "unconfigured",
+  };
+  const accept = (entry: Approved) => {
+    if (isSeriesEpisode(entry.record.title)) {
+      result.held.push({ ...entry, why: "Parece un episodio suelto de una serie: decide si agruparla o publicarlo." });
+    } else {
+      result.approved.push(entry);
+    }
   };
 
   for (const { record, video } of candidates) {
@@ -88,9 +112,14 @@ export async function decideIntake(
       result.rejected.push({ videoId, title: record.title, reason: tooShort, source: "prefilter" });
       continue;
     }
+    if (detectUnsupportedLanguage(record.title, video.snippet.description ?? "")) {
+      const reason = "Está en portugués: el catálogo solo lista cursos en español o inglés.";
+      result.rejected.push({ videoId, title: record.title, reason, source: "prefilter" });
+      continue;
+    }
 
     if (reviewer === "unconfigured") {
-      result.approved.push({ record, video });
+      accept({ record, video });
       continue;
     }
     if (reviewer === "unavailable") {
@@ -111,8 +140,13 @@ export async function decideIntake(
         description: cleanDescription(video.snippet.description),
         catalog: catalogFor(record.category, catalog, record.slug),
       });
-      if (decision.isCourse) result.approved.push({ record, video, decision });
-      else result.rejected.push({ videoId, title: record.title, reason: decision.reason, source: "ai" });
+      const reject = (reason: string) => result.rejected.push({ videoId, title: record.title, reason, source: "ai" });
+      if (!decision.isCourse) reject(decision.reason);
+      else if (!isSupportedLanguage(decision.language)) {
+        reject(`En «${decision.language}»: el catálogo solo lista cursos en español o inglés.`);
+      } else if (decision.content.analysis.verdict.score < MIN_INTAKE_SCORE) {
+        reject(`Puntuación ${decision.content.analysis.verdict.score}/5, por debajo del mínimo de ${MIN_INTAKE_SCORE}.`);
+      } else accept({ record, video, decision });
     } catch (error) {
       result.skipped.push({
         videoId,
@@ -127,7 +161,7 @@ export async function decideIntake(
 /** Full pipeline: filter, fetch, review, persist. */
 export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: string): Promise<IntakeResult> {
   const withId = records.filter((r) => r.youtube?.videoId);
-  if (withId.length === 0) return { approved: [], rejected: [], skipped: [], aiConfigured: true };
+  if (withId.length === 0) return { approved: [], held: [], rejected: [], skipped: [], aiConfigured: true };
 
   const ids = withId.map((r) => r.youtube!.videoId!);
   const alreadyRejected = new Set(
@@ -136,7 +170,7 @@ export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: st
     )
   );
   const fresh = withId.filter((r) => !alreadyRejected.has(r.youtube!.videoId!));
-  if (fresh.length === 0) return { approved: [], rejected: [], skipped: [], aiConfigured: true };
+  if (fresh.length === 0) return { approved: [], held: [], rejected: [], skipped: [], aiConfigured: true };
 
   const videos = await fetchVideos(fresh.map((r) => r.youtube!.videoId!), youtubeApiKey);
 
@@ -168,7 +202,7 @@ export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: st
     catalog
   );
 
-  for (const { record, video, decision } of result.approved) {
+  for (const { record, video, decision } of [...result.approved, ...result.held]) {
     const row: NewCourseRow = {
       slug: record.slug,
       title: record.title,
@@ -210,12 +244,12 @@ export async function intakeNewVideos(records: CourseRecord[], youtubeApiKey: st
 
 /** The body of the admin digest email for an intake run. */
 export function intakeDigestHtml(result: IntakeResult, intro: string): string {
-  const approved = result.approved
-    .map(({ record, decision }) => {
-      const summary = decision ? ` — <em>${escapeHtml(decision.content.summary)}</em>` : "";
-      return `<li><a href="${escapeHtml(record.sourceUrl)}">${escapeHtml(record.title)}</a> · ${escapeHtml(record.category)}${summary}</li>`;
-    })
-    .join("");
+  const item = ({ record, decision }: Approved) => {
+    const summary = decision ? ` — <em>${escapeHtml(decision.content.summary)}</em>` : "";
+    return `<li><a href="${escapeHtml(record.sourceUrl)}">${escapeHtml(record.title)}</a> · ${escapeHtml(record.category)}${summary}</li>`;
+  };
+  const approved = result.approved.map(item).join("");
+  const held = result.held.map(item).join("");
   const rejected = result.rejected
     .map((r) => `<li>${escapeHtml(r.title)} — ${escapeHtml(r.reason)}</li>`)
     .join("");
@@ -231,6 +265,7 @@ export function intakeDigestHtml(result: IntakeResult, intro: string): string {
     <p>${intro}</p>
     ${noAi}
     ${approved ? `<p><strong>Listos para aprobar (${result.approved.length})</strong> en <a href="https://cursos.unaividal.com/admin">/admin</a>:</p><ul>${approved}</ul>` : ""}
+    ${held ? `<p><strong>Revisar a mano (${result.held.length})</strong> — parecen episodios sueltos de una serie; quedan pendientes, no los apruebes en bloque:</p><ul>${held}</ul>` : ""}
     ${rejected ? `<p><strong>Descartados por la IA (${result.rejected.length})</strong> — por si alguno merece rescatarse:</p><ul>${rejected}</ul>` : ""}
     ${skipped}
   `;

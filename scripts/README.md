@@ -75,16 +75,24 @@ Both `sync-youtube.ts` and `discover-youtube.ts` route every **new** video
 through `intake-youtube.ts` instead of dumping it in the admin queue:
 
 1. Already rejected in a previous run (`rejected_videos` table)? Dropped.
-2. Shorter than 10 minutes? Rejected without an API call.
+2. Shorter than 10 minutes, or obviously Portuguese ("em Português",
+   "Aula N", "você", "Mestrado"…)? Rejected without an API call.
 3. Claude decides "is this a real course?" and, if so, writes the summary,
    overview, highlights, level **and the editorial analysis** shown on the
    course page (audience, prerequisites, outcomes, structure, strengths and
    caveats, study plan, tips, before/after courses from our own catalog,
    verdict with a 1-5 score, FAQ) — grounded only in the video's own data.
-4. Approved → inserted as **pending with its summary**, ready to approve in
+   It also reports the teaching language (ISO code; not stored).
+4. Rejected if it isn't a course, isn't in Spanish or English, or its
+   verdict score is below 3 (`src/lib/courses/intake-rules.ts`).
+5. A single numbered episode of a series ("Clase 3", "Día 1", "Aula 2",
+   "#1"…) is **held**: inserted as pending but listed apart in the digest
+   ("Revisar a mano"), never in the ready-to-approve list — a human decides
+   whether to group the series or publish it.
+6. Approved → inserted as **pending with its summary**, ready to approve in
    `/admin` (never auto-published). Rejected → remembered, and listed with
    the reason in the digest email so a wrongly discarded one can be rescued.
-5. Review errors / refusals / missing videos are **skipped and retried** next
+7. Review errors / refusals / missing videos are **skipped and retried** next
    run — never treated as a rejection.
 
 Two backends, picked from the environment (`AI_REVIEW_BACKEND` forces one):

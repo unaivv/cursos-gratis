@@ -220,7 +220,7 @@ async function main() {
   const intake = await intakeNewVideos(newlyDiscovered, apiKey);
   console.log(
     `${newlyDiscovered.length} new video(s): ${intake.approved.length} approved (pending, ready to review), ` +
-      `${intake.rejected.length} rejected, ${intake.skipped.length} to retry next run.`
+      `${intake.held.length} held for manual review, ${intake.rejected.length} rejected, ${intake.skipped.length} to retry next run.`
   );
 
   // Fill in duration/chapters/description for older rows not enriched yet.
@@ -231,7 +231,7 @@ async function main() {
     console.error("Enrichment failed (sync itself succeeded):", error);
   }
 
-  if (intake.approved.length > 0 || intake.rejected.length > 0) {
+  if (intake.approved.length > 0 || intake.held.length > 0 || intake.rejected.length > 0) {
     await sendAdminNotification(
       `${intake.approved.length} curso(s) nuevo(s) de YouTube listos para aprobar`,
       intakeDigestHtml(

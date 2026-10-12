@@ -122,10 +122,10 @@ async function main() {
   const intake = await intakeNewVideos(discovered, apiKey);
   console.log(
     `Discovery searched ${terms.length} term(s), found ${discovered.length} new video(s): ` +
-      `${intake.approved.length} approved (pending), ${intake.rejected.length} rejected, ${intake.skipped.length} to retry.`
+      `${intake.approved.length} approved (pending), ${intake.held.length} held, ${intake.rejected.length} rejected, ${intake.skipped.length} to retry.`
   );
 
-  if (intake.approved.length > 0 || intake.rejected.length > 0) {
+  if (intake.approved.length > 0 || intake.held.length > 0 || intake.rejected.length > 0) {
     await sendAdminNotification(
       `${intake.approved.length} curso(s) nuevo(s) descubiertos (búsqueda) listos para aprobar`,
       intakeDigestHtml(

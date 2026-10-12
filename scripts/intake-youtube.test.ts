@@ -4,7 +4,7 @@ import type { CourseRecord } from "../src/lib/courses/schema";
 import type { VideoItem } from "./enrich-youtube";
 import { sampleAnalysis } from "../src/lib/courses/ai-analysis.fixture";
 
-function candidate(id: string, duration: string | null, title = `Vídeo ${id}`) {
+function candidate(id: string, duration: string | null, title = `Vídeo ${id}`, description = "Descripción") {
   const record: CourseRecord = {
     slug: `video-${id}`,
     title,
@@ -17,7 +17,7 @@ function candidate(id: string, duration: string | null, title = `Vídeo ${id}`) 
     youtube: { videoId: id, channelId: "UC1" },
   };
   const video: VideoItem | undefined = duration
-    ? { id, snippet: { description: "Descripción", publishedAt: "2025-01-01T00:00:00Z" }, contentDetails: { duration } }
+    ? { id, snippet: { description, publishedAt: "2025-01-01T00:00:00Z" }, contentDetails: { duration } }
     : undefined;
   return { record, video };
 }
@@ -25,6 +25,7 @@ function candidate(id: string, duration: string | null, title = `Vídeo ${id}`) 
 const courseDecision = {
   isCourse: true as const,
   reason: "Curso.",
+  language: "es" as string | null,
   content: {
     summary: "Curso de Python desde cero con variables y funciones.",
     overview: "Recorre los fundamentos de Python en varios capítulos y ejercicios.",
@@ -101,5 +102,57 @@ describe("decideIntake", () => {
     expect(result.skipped).toHaveLength(1);
     expect(result.rejected).toHaveLength(1);
     expect(result.approved).toHaveLength(0);
+  });
+
+  it("rejects a verdict score below 3 and keeps 3 or more", async () => {
+    const withScore = (score: number) => ({
+      ...courseDecision,
+      content: { ...courseDecision.content, analysis: { ...sampleAnalysis, verdict: { ...sampleAnalysis.verdict, score } } },
+    });
+    const reviewer: Reviewer = async (input) => withScore(input.title.includes("flojo") ? 2 : 3);
+    const result = await decideIntake([candidate("a", "PT1H", "Curso flojo"), candidate("b", "PT1H", "Curso bueno")], reviewer);
+    expect(result.approved.map((a) => a.record.slug)).toEqual(["video-b"]);
+    expect(result.rejected).toEqual([expect.objectContaining({ videoId: "a", source: "ai", reason: expect.stringMatching(/2\/5/) })]);
+  });
+
+  it("rejects languages other than Spanish or English, and unknown passes", async () => {
+    const reviewer: Reviewer = async (input) => ({
+      ...courseDecision,
+      language: input.title.includes("Italiano") ? "it" : input.title.includes("English") ? "en" : null,
+    });
+    const result = await decideIntake(
+      [candidate("a", "PT1H", "Corso di Italiano"), candidate("b", "PT1H", "English course"), candidate("c", "PT1H")],
+      reviewer
+    );
+    expect(result.approved.map((a) => a.record.slug)).toEqual(["video-b", "video-c"]);
+    expect(result.rejected).toEqual([expect.objectContaining({ videoId: "a", source: "ai" })]);
+  });
+
+  it("rejects obvious Portuguese without calling the reviewer, even unconfigured", async () => {
+    let calls = 0;
+    const reviewer: Reviewer = async () => {
+      calls++;
+      return courseDecision;
+    };
+    const portuguese = [
+      candidate("a", "PT1H", "CS50x em Português - Aula 1 - C"),
+      candidate("b", "PT1H", "Curso de Python", "Neste curso você vai aprender Python."),
+    ];
+    const result = await decideIntake(portuguese, reviewer);
+    expect(calls).toBe(0);
+    expect(result.rejected.map((r) => r.source)).toEqual(["prefilter", "prefilter"]);
+    expect((await decideIntake(portuguese, "unconfigured")).rejected).toHaveLength(2);
+  });
+
+  it("holds single series episodes for a human instead of approving or rejecting them", async () => {
+    const reviewer: Reviewer = async () => courseDecision;
+    const result = await decideIntake(
+      [candidate("a", "PT1H", "Curso de Unity - Clase 3"), candidate("b", "PT1H", "Curso completo de Python 3")],
+      reviewer
+    );
+    expect(result.approved.map((a) => a.record.slug)).toEqual(["video-b"]);
+    expect(result.held.map((h) => h.record.slug)).toEqual(["video-a"]);
+    expect(result.held[0].decision).toBeDefined();
+    expect(result.rejected).toHaveLength(0);
   });
 });

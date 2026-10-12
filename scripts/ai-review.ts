@@ -67,9 +67,19 @@ export type ReviewInput = {
   alreadyListed?: boolean;
 };
 
+/**
+ * `language` is the teaching language as a lowercase ISO 639-1 code (null
+ * when the model couldn't tell). It only gates the intake; it is not stored,
+ * so analyses already saved don't need it.
+ */
 export type ReviewDecision =
-  | { isCourse: true; reason: string; content: Omit<AiContent, "id"> & { analysis: CourseAnalysis } }
-  | { isCourse: false; reason: string };
+  | {
+      isCourse: true;
+      reason: string;
+      language?: string | null;
+      content: Omit<AiContent, "id"> & { analysis: CourseAnalysis };
+    }
+  | { isCourse: false; reason: string; language?: string | null };
 
 /** Deterministic rejection before spending an API call. */
 export function prefilterReason(durationSeconds: number | null): string | null {
@@ -110,6 +120,7 @@ const modelAnalysisSchema = z.object({
 export const modelOutputSchema = z.object({
   is_course: z.boolean(),
   reason: z.string(),
+  language: z.string().nullable(),
   summary: z.string().nullable(),
   overview: z.string().nullable(),
   highlights: z.array(z.string()),
@@ -123,6 +134,7 @@ STEP 1 — Decide "is_course".
 is_course = true only for structured educational instruction: a full course, a multi-part class or lecture, a workshop, or an in-depth tutorial that teaches how to do or understand a topic, where someone could actually learn something substantial by following it.
 is_course = false for: news and announcements, commentary and opinion, reactions, product launches and hype, personal setups or vlogs, podcasts and interviews, promotional videos, career-advice or "roadmap" talks, clips and shorts, live streams without teaching structure, and short explainers under ~20 minutes with no course structure. When in doubt, choose false: a missed course can be added by hand, a junk video listed hurts the catalog. If the data says the course is already listed ("alreadyListed": true), keep is_course = true unless it is clearly not a course.
 Always give a one-sentence "reason" in Spanish (max 160 characters) explaining the decision.
+Always give "language": the language the video is taught in, as a lowercase ISO 639-1 code ("es", "en", "pt"...), judged from the title, description and chapters; null only if they give no clue.
 
 STEP 2 — Only if is_course is true, write the listing text:
 - "summary": 1-2 sentences, max 200 characters, saying concretely what the course covers (shown on a listing card under the title — do not just repeat the title).
@@ -288,7 +300,8 @@ export function toDecision(raw: unknown, allowedSlugs?: Set<string>): ReviewDeci
   if (!parsed.success) return null;
   const out = parsed.data;
   const reason = out.reason.trim().slice(0, 200) || "Sin motivo indicado.";
-  if (!out.is_course) return { isCourse: false, reason };
+  const language = out.language?.trim().toLowerCase() || null;
+  if (!out.is_course) return { isCourse: false, reason, language };
   if (!out.analysis) return null;
 
   const analysis = toAnalysis({
@@ -304,7 +317,7 @@ export function toDecision(raw: unknown, allowedSlugs?: Set<string>): ReviewDeci
     level: out.level,
   });
   if (!content.success) return null;
-  return { isCourse: true, reason, content: { ...content.data, analysis } };
+  return { isCourse: true, reason, language, content: { ...content.data, analysis } };
 }
 
 /** Medium effort: the analysis needs more thought than the old yes/no + summary. */

@@ -40,6 +40,7 @@ const modelAnalysis = {
 const goodCourse = {
   is_course: true,
   reason: "Curso completo de Python con capítulos.",
+  language: "es",
   summary: "Curso de Python desde cero: variables, funciones y estructuras de datos.",
   overview: "Recorre los fundamentos de Python en varios capítulos, desde la instalación hasta funciones.",
   highlights: ["Variables", "Funciones"],
@@ -63,20 +64,26 @@ describe("prefilterReason", () => {
 describe("toDecision", () => {
   it("accepts a well-formed course decision", () => {
     const decision = toDecision(goodCourse);
-    expect(decision).toMatchObject({ isCourse: true, content: { level: "principiante" } });
+    expect(decision).toMatchObject({ isCourse: true, language: "es", content: { level: "principiante" } });
+  });
+
+  it("normalizes the language code and keeps an unknown one as null", () => {
+    expect(toDecision({ ...goodCourse, language: " PT " })).toMatchObject({ language: "pt" });
+    expect(toDecision({ ...goodCourse, language: null })).toMatchObject({ language: null });
   });
 
   it("accepts a rejection without content", () => {
     const decision = toDecision({
       is_course: false,
       reason: "Es un vídeo de opinión.",
+      language: "es",
       summary: null,
       overview: null,
       highlights: [],
       level: null,
       analysis: null,
     });
-    expect(decision).toEqual({ isCourse: false, reason: "Es un vídeo de opinión." });
+    expect(decision).toEqual({ isCourse: false, reason: "Es un vídeo de opinión.", language: "es" });
   });
 
   it("returns null when a course decision's content breaks the site limits", () => {
