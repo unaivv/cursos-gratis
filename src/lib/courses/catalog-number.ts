@@ -28,3 +28,13 @@ export function catalogNumber(category: string, slug: string, allSlugsInCategory
   const position = String(index === -1 ? sorted.length + 1 : index + 1).padStart(3, "0");
   return `${code}.${position}`;
 }
+
+/**
+ * Catalog numbers for every slug of a category at once — one sort instead
+ * of one per card, for listings that render many cards.
+ */
+export function catalogNumbers(category: string, allSlugsInCategory: string[]): Map<string, string> {
+  const code = SUBJECT_CODE[category] ?? "000";
+  const sorted = [...allSlugsInCategory].sort();
+  return new Map(sorted.map((slug, index) => [slug, `${code}.${String(index + 1).padStart(3, "0")}`]));
+}
