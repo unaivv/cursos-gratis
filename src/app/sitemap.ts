@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { readAllCourses, readCategories } from "@/lib/courses/read";
 import { isIndexableCourse } from "@/lib/courses/depth";
 import { courseDateModified } from "@/lib/courses/quick-answer";
+import { pageCount, pageHref } from "@/lib/courses/pagination";
 import { GUIDES } from "@/lib/editorial/guides";
 import { SITE_URL } from "@/lib/site";
 
@@ -16,7 +17,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // A listing page changes when any of its courses does: latest course
   // change per category, and across the catalog for the home page.
   const latestByCategory = new Map<string, string>();
+  const countByCategory = new Map<string, number>();
   for (const course of courses) {
+    countByCategory.set(course.category, (countByCategory.get(course.category) ?? 0) + 1);
     const modified = courseDateModified(course);
     const current = latestByCategory.get(course.category);
     if (!current || Date.parse(modified) > Date.parse(current)) latestByCategory.set(course.category, modified);
@@ -26,11 +29,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const catalogModified = latest([...latestByCategory.values()]);
   const guidesModified = latest(GUIDES.map((guide) => guide.updated));
 
-  const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({
-    url: `${SITE_URL}/${category.slug}`,
-    lastModified: latestByCategory.get(category.slug),
-    changeFrequency: "weekly",
-  }));
+  // Every page of a paginated category listing (?page=2..N) is its own
+  // canonical URL, listed so all of them get crawled, not just page 1.
+  const categoryEntries: MetadataRoute.Sitemap = categories.flatMap((category) =>
+    Array.from({ length: pageCount(countByCategory.get(category.slug) ?? 0) }, (_, index) => ({
+      url: `${SITE_URL}${pageHref(`/${category.slug}`, {}, index + 1)}`,
+      lastModified: latestByCategory.get(category.slug),
+      changeFrequency: "weekly" as const,
+    }))
+  );
 
   const guideEntries: MetadataRoute.Sitemap = GUIDES.map((guide) => ({
     url: `${SITE_URL}/guias/${guide.slug}`,
