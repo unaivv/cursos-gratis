@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getCoursesByCategory, readCategories } from "@/lib/courses/read";
 import { CATEGORY_ICON } from "@/lib/courses/category-icons";
 import { filterCourses } from "@/lib/courses/filters";
 import { getParamValues, clearParamsHref } from "@/lib/courses/query-params";
+import { PAGE_PARAM, pageCount, pageHref, pageSlice, parsePageParam, COURSES_PER_PAGE } from "@/lib/courses/pagination";
+import { catalogNumbers } from "@/lib/courses/catalog-number";
 import { CATEGORY_EDITORIAL } from "@/lib/editorial/categories";
 import { GUIDE_KIND_LABEL, guideForCategory, guidesForCategory } from "@/lib/editorial/guides";
 import { recommendationRank } from "@/lib/courses/ai-analysis";
@@ -12,6 +14,7 @@ import { buildCategoryFaq, faqAnswerText } from "@/lib/courses/category-faq";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { FilterPills } from "@/components/courses/FilterPills";
 import { CategoryFaqSection } from "@/components/courses/CategoryFaqSection";
+import { Pagination } from "@/components/layout/Pagination";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { AdsterraBand, AdsterraLeaderboard } from "@/components/ads/AdsterraBanner";
 import { AdsterraNativeBanner } from "@/components/ads/AdsterraNativeBanner";
@@ -27,23 +30,35 @@ async function findCategory(slug: string) {
   return categories.find((category) => category.slug === slug);
 }
 
+type CategorySearchParams = { platform?: string | string[]; page?: string | string[] };
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ category: string }>;
+  searchParams: Promise<CategorySearchParams>;
 }): Promise<Metadata> {
   const { category: categorySlug } = await params;
+  const search = await searchParams;
   const category = await findCategory(categorySlug);
   if (!category) return {};
-  const title = `Cursos gratis de ${category.name}: rutas, análisis y selección verificada`;
+  // An invalid page 404s in the page itself; metadata just falls back to page 1.
+  const page = parsePageParam(search[PAGE_PARAM]) ?? 1;
+  const pageSuffix = page > 1 ? ` — página ${page}` : "";
+  const title = `Cursos gratis de ${category.name}: rutas, análisis y selección verificada${pageSuffix}`;
   const tagline = CATEGORY_EDITORIAL[category.slug]?.tagline;
   const description = `Cursos gratuitos de ${category.name} en YouTube y Udemy, analizados y verificados a mano${
     tagline ? `: ${tagline.charAt(0).toLowerCase()}${tagline.slice(1)}` : "."
-  }`;
+  }${pageSuffix}`;
+  // Each unfiltered page is its own canonical; filtered views (nofollow,
+  // disallowed in robots) canonicalize to the plain category.
+  const filtered = getParamValues(search, "platform").length > 0;
+  const canonical = filtered ? `/${category.slug}` : pageHref(`/${category.slug}`, {}, page);
   return {
     title,
     description,
-    alternates: { canonical: `/${category.slug}` },
+    alternates: { canonical },
     openGraph: { title, description },
     twitter: { title, description },
   };
@@ -54,17 +69,28 @@ export default async function CategoryPage({
   searchParams,
 }: {
   params: Promise<{ category: string }>;
-  searchParams: Promise<{ platform?: string | string[] }>;
+  searchParams: Promise<CategorySearchParams>;
 }) {
   const { category: categorySlug } = await params;
   const search = await searchParams;
   const category = await findCategory(categorySlug);
   if (!category) notFound();
 
+  const basePath = `/${category.slug}`;
+  const page = parsePageParam(search[PAGE_PARAM]);
+  if (page === null) notFound();
+  // `?page=1` would duplicate the bare URL — send it there for good.
+  if (search[PAGE_PARAM] !== undefined && page === 1) permanentRedirect(pageHref(basePath, search, 1));
+
   const allInCategory = await getCoursesByCategory(categorySlug);
-  const categorySlugs = allInCategory.map((c) => c.slug);
+  const numbers = catalogNumbers(category.slug, allInCategory.map((c) => c.slug));
   const selectedPlatforms = getParamValues(search, "platform");
   const courses = filterCourses(allInCategory, { categories: [], platforms: selectedPlatforms });
+  const totalPages = pageCount(courses.length);
+  if (page > totalPages) notFound();
+  // The editorial blocks (intro, guides, top picks, tips, FAQ) live on
+  // page 1 only, so later pages aren't near-duplicates of it.
+  const isFirstPage = page === 1;
 
   const editorial = CATEGORY_EDITORIAL[category.slug];
   const guides = guidesForCategory(category.slug);
@@ -74,6 +100,8 @@ export default async function CategoryPage({
     .slice(0, 3);
   // Best-rated first, then the rest in catalog order.
   const sortedCourses = [...courses].sort((a, b) => recommendationRank(b.aiAnalysis) - recommendationRank(a.aiAnalysis));
+  const pageCourses = pageSlice(sortedCourses, page);
+  const pageOffset = (page - 1) * COURSES_PER_PAGE;
 
   // Generated from the whole category (never the filtered list), so the
   // visible FAQ and its JSON-LD stay the same whatever the filter.
@@ -104,19 +132,20 @@ export default async function CategoryPage({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: `Cursos gratis de ${category.name}`,
-    url: `${SITE_URL}/${category.slug}`,
+    url: `${SITE_URL}${pageHref(basePath, {}, page)}`,
     mainEntity: {
       "@type": "ItemList",
-      itemListElement: allInCategory.map((course, index) => ({
+      numberOfItems: courses.length,
+      itemListElement: pageCourses.map((course, index) => ({
         "@type": "ListItem",
-        position: index + 1,
+        position: pageOffset + index + 1,
         url: `${SITE_URL}/${course.category}/${course.slug}`,
         name: course.title,
       })),
     },
   };
 
-  const faqJsonLd = faq.length > 0 && {
+  const faqJsonLd = isFirstPage && faq.length > 0 && {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: faq.map((item) => ({
@@ -140,15 +169,16 @@ export default async function CategoryPage({
             Filtrar <span className="chevron">▾</span>
           </summary>
           <FilterPills
-            basePath={`/${category.slug}`}
-            searchParams={search}
+            basePath={basePath}
+            // Changing the filter starts over from page 1.
+            searchParams={{ platform: search.platform }}
             paramKey="platform"
             label="Plataforma"
             options={platformOptions}
           />
           {selectedPlatforms.length > 0 && (
             <Link
-              href={clearParamsHref(`/${category.slug}`, search, ["platform"])}
+              href={clearParamsHref(basePath, search, ["platform", PAGE_PARAM])}
               className="w-fit font-mono text-xs text-ink-muted underline hover:text-ink"
             >
               quitar filtro
@@ -166,7 +196,7 @@ export default async function CategoryPage({
           {category.name}
         </h1>
 
-        {editorial && (
+        {isFirstPage && editorial && (
           <div className="mb-10 flex max-w-2xl flex-col gap-4 text-ink-muted">
             {editorial.intro.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
@@ -174,7 +204,7 @@ export default async function CategoryPage({
           </div>
         )}
 
-        {guides.length > 0 && (
+        {isFirstPage && guides.length > 0 && (
           <section aria-labelledby="category-guides" className="mb-12 flex flex-col gap-4">
             <div className="flex items-baseline justify-between gap-4">
               <h2 id="category-guides" className="font-serif text-2xl text-ink">
@@ -203,7 +233,7 @@ export default async function CategoryPage({
           </section>
         )}
 
-        {topCourses.length > 0 && selectedPlatforms.length === 0 && (
+        {isFirstPage && topCourses.length > 0 && selectedPlatforms.length === 0 && (
           <section aria-labelledby="top-courses" className="mb-12 flex flex-col gap-4">
             <h2 id="top-courses" className="font-serif text-2xl text-ink">
               Los más recomendados
@@ -217,7 +247,7 @@ export default async function CategoryPage({
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {topCourses.map((course) => (
-                <CourseCard key={`top-${course.slug}`} course={course} categorySlugs={categorySlugs} />
+                <CourseCard key={`top-${course.slug}`} course={course} number={numbers.get(course.slug)} />
               ))}
             </div>
           </section>
@@ -229,6 +259,7 @@ export default async function CategoryPage({
           <h2 className="font-serif text-2xl text-ink">Todas las fichas</h2>
           <span className="font-mono text-xs text-ink-muted">
             {courses.length} ficha{courses.length === 1 ? "" : "s"}
+            {totalPages > 1 && ` · página ${page} de ${totalPages}`}
           </span>
         </div>
 
@@ -240,24 +271,32 @@ export default async function CategoryPage({
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {interleaveAds(sortedCourses, IN_FEED_AD_EVERY).map((entry) =>
+            {interleaveAds(pageCourses, IN_FEED_AD_EVERY).map((entry) =>
               entry.type === "ad" ? (
                 <AdsterraLeaderboard key={`ad-${entry.slot}`} className="col-span-full" />
               ) : (
                 <CourseCard
                   key={`${entry.item.platform}-${entry.item.slug}`}
                   course={entry.item}
-                  categorySlugs={categorySlugs}
+                  number={numbers.get(entry.item.slug)}
                 />
               )
             )}
           </div>
         )}
 
+        <Pagination
+          basePath={basePath}
+          searchParams={search}
+          current={page}
+          total={totalPages}
+          nofollow={selectedPlatforms.length > 0}
+        />
+
         {courses.length > 0 && <AdsterraLeaderboard className="mt-8" />}
       </section>
 
-      {editorial && (
+      {isFirstPage && editorial && (
         <section
           aria-labelledby="how-to-learn"
           className="mx-auto w-full max-w-5xl border-t border-rule px-6 py-12"
@@ -289,7 +328,7 @@ export default async function CategoryPage({
         </section>
       )}
 
-      {faq.length > 0 && (
+      {isFirstPage && faq.length > 0 && (
         <section className="mx-auto w-full max-w-5xl border-t border-rule px-6 py-12">
           <CategoryFaqSection items={faq} />
         </section>

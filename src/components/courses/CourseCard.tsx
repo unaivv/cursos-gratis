@@ -5,15 +5,26 @@ import { PlatformStamp } from "./PlatformStamp";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { VerdictBadge } from "./VerdictBadge";
 
+/** Only the fields a card renders — a full CourseRecord fits, but callers
+ * never need to load chapters, descriptions or the full analysis for it. */
+export type CourseCardData = Pick<
+  CourseRecord,
+  "slug" | "title" | "author" | "platform" | "category" | "aiSummary" | "lastVerifiedAt"
+> & { aiAnalysis?: Pick<NonNullable<CourseRecord["aiAnalysis"]>, "verdict"> };
+
 export function CourseCard({
   course,
   categorySlugs,
+  number: precomputedNumber,
 }: {
-  course: CourseRecord;
+  course: CourseCardData;
   /** Slugs of every course in this category, for a stable catalog number. */
-  categorySlugs: string[];
+  categorySlugs?: string[];
+  /** Catalog number already computed by the caller (see catalogNumbers) —
+   * avoids re-sorting the category's slugs once per card. */
+  number?: string;
 }) {
-  const number = catalogNumber(course.category, course.slug, categorySlugs);
+  const number = precomputedNumber ?? catalogNumber(course.category, course.slug, categorySlugs ?? []);
 
   return (
     <Link
